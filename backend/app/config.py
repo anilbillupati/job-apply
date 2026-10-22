@@ -1,7 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
@@ -28,6 +28,14 @@ class Settings(BaseSettings):
     llm_fallbacks: bool = Field(default=True, alias="LLM_FALLBACKS")
     cors_origins: list[str] = Field(default=["http://localhost:5173"], alias="CORS_ORIGINS")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _blank_is_unset(cls, data):
+        """`KEY=` in .env means "use the default", not an empty value."""
+        if isinstance(data, dict):
+            return {k: v for k, v in data.items() if not (isinstance(v, str) and not v.strip())}
+        return data
 
     @property
     def secrets(self) -> list[str]:

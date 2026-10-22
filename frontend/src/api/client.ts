@@ -1,0 +1,81 @@
+import type {
+  ApifyStatus,
+  AppSettings,
+  ExpandPreview,
+  JobDetail,
+  JobPage,
+  JobRow,
+  Meta,
+  Profile,
+  Resume,
+  Run,
+  RunInput,
+} from "./types";
+
+export const API_BASE = "/api";
+
+export class ApiError extends Error {
+  constructor(
+    public status: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const headers: Record<string, string> = init.body instanceof FormData ? {} : { "Content-Type": "application/json" };
+  const res = await fetch(`${API_BASE}${path}`, { ...init, headers });
+  if (!res.ok) {
+    let msg = `${res.status} ${res.statusText}`;
+    try {
+      const body = await res.json();
+      if (body?.detail) msg = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail);
+    } catch {
+      /* not JSON */
+    }
+    throw new ApiError(res.status, msg);
+  }
+  return res.json() as Promise<T>;
+}
+
+const json = (method: string, body?: unknown): RequestInit => ({ method, body: JSON.stringify(body ?? {}) });
+
+export const api = {
+  meta: () => request<Meta>("/meta"),
+
+  uploadResumes: (files: File[]) => {
+    const fd = new FormData();
+    files.forEach((f) => fd.append("files", f));
+    return request<Resume>("/resumes", { method: "POST", body: fd });
+  },
+  resumes: () => request<Resume[]>("/resumes"),
+  resume: (id: number) => request<Resume>(`/resumes/${id}`),
+  updateProfile: (id: number, profile: Profile) => request<Resume>(`/resumes/${id}/profile`, json("PUT", profile)),
+
+  suggestKeywords: (resume_id: number, roles: string[]) =>
+    request<{ keywords: Record<string, string[]> }>("/keywords/suggest", json("POST", { resume_id, roles })),
+  createRun: (body: RunInput) => request<Run>("/runs", json("POST", body)),
+  updateRun: (id: number, body: RunInput) => request<Run>(`/runs/${id}`, json("PATCH", body)),
+  runs: () => request<Run[]>("/runs"),
+  run: (id: number) => request<Run>(`/runs/${id}`),
+  startRun: (id: number) => request<Run>(`/runs/${id}/start`, json("POST")),
+  cancelRun: (id: number) => request<Run>(`/runs/${id}/cancel`, json("POST")),
+  expandRun: (id: number, confirm: boolean) => request<ExpandPreview>(`/runs/${id}/expand`, json("POST", { confirm })),
+
+  jobs: (runId: number, params: Record<string, string | number | undefined>) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => v !== undefined && v !== "" && qs.set(k, String(v)));
+    return request<JobPage>(`/runs/${runId}/jobs?${qs}`);
+  },
+  job: (id: number) => request<JobDetail>(`/jobs/${id}`),
+  patchJob: (id: number, body: { user_state?: JobRow["user_state"]; user_note?: string | null }) =>
+    request<JobRow>(`/jobs/${id}`, json("PATCH", body)),
+
+  settings: () => request<AppSettings>("/settings"),
+  saveSettings: (body: Partial<AppSettings>) => request<AppSettings>("/settings", json("PUT", body)),
+  apifyStatus: () => request<ApifyStatus>("/settings/apify"),
+
+  exportUrl: (runId: number, full = false) => `${API_BASE}/runs/${runId}/export.xlsx?full=${full}`,
+  eventsUrl: (runId: number) => `${API_BASE}/runs/${runId}/events`,
+};
