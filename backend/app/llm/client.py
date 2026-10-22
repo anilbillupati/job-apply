@@ -7,6 +7,7 @@ import anthropic
 
 from app.config import get_settings
 from app.logging_setup import redact, timed_call
+from app.services import anthropic_key
 
 log = logging.getLogger("llm")
 
@@ -36,22 +37,27 @@ def usage_cost(model: str, usage) -> float:
 
 
 _client: anthropic.AsyncAnthropic | None = None
+_client_key: str | None = None
 _fallbacks_ok = True
 
 
+def make_client(api_key: str) -> anthropic.AsyncAnthropic:
+    return anthropic.AsyncAnthropic(api_key=api_key, max_retries=3, timeout=300)
+
+
 def get_client() -> anthropic.AsyncAnthropic:
-    global _client
-    key = get_settings().anthropic_api_key
-    if not key or not key.get_secret_value():
-        raise LLMUnavailable("ANTHROPIC_API_KEY is not configured")
-    if _client is None:
-        _client = anthropic.AsyncAnthropic(api_key=key.get_secret_value(), max_retries=3, timeout=300)
+    """Client for the key saved in the UI, else ANTHROPIC_API_KEY. Rebuilt when the key changes."""
+    global _client, _client_key
+    key, _ = anthropic_key.resolve()
+    if not key:
+        raise LLMUnavailable("No Anthropic API key: add one in Settings or set ANTHROPIC_API_KEY")
+    if _client is None or _client_key != key:
+        _client, _client_key = make_client(key), key
     return _client
 
 
 def llm_available() -> bool:
-    key = get_settings().anthropic_api_key
-    return bool(key and key.get_secret_value())
+    return anthropic_key.resolve()[0] is not None
 
 
 async def structured_call(

@@ -75,6 +75,12 @@ disabled or deleted.
 - Each Apify run remembers which key started it, because run and dataset IDs belong to that account.
 - `APIFY_TOKEN` in `.env` is only used while the pool is empty.
 
+## Anthropic API key
+
+Settings → **Anthropic API key**: paste a key (`sk-ant-…`). It's verified with Anthropic (a models-list call, no
+tokens), encrypted like the Apify keys, and takes priority over `ANTHROPIC_API_KEY` in `.env`. You can test, replace
+or remove it there.
+
 ## Never the same job twice
 
 When a run finishes, the job IDs in its ranked list (plus their cross-listings on other platforms) go into a

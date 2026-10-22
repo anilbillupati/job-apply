@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, History, Loader2, PlugZap, Save, Trash2, XCircle } from "lucide-react";
+import { CheckCircle2, History, KeyRound, Loader2, PlugZap, Save, Trash2, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -79,6 +79,132 @@ function ApifyCard() {
           </>
         )}
       </CardContent>
+    </Card>
+  );
+}
+
+function AnthropicKeyCard() {
+  const qc = useQueryClient();
+  const status = useQuery({ queryKey: ["anthropic-key"], queryFn: api.anthropicKey });
+  const [key, setKey] = useState("");
+  const [confirm, setConfirm] = useState(false);
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["anthropic-key"] });
+    qc.invalidateQueries({ queryKey: ["settings"] });
+    qc.invalidateQueries({ queryKey: ["meta"] });
+  };
+  const save = useMutation({
+    mutationFn: () => api.saveAnthropicKey(key.trim()),
+    onSuccess: (r) => {
+      setKey("");
+      refresh();
+      if (r.warning) toast.warning(r.warning);
+      else toast.success("Anthropic key verified and saved");
+    },
+  });
+  const remove = useMutation({
+    mutationFn: api.removeAnthropicKey,
+    onSuccess: () => {
+      setConfirm(false);
+      refresh();
+      toast.success("Anthropic key removed");
+    },
+  });
+  const test = useMutation({
+    mutationFn: api.testAnthropicKey,
+    onSuccess: (r) => (r.ok ? toast.success(r.detail) : toast.error(r.detail)),
+    onError: (e) => toast.error(e.message),
+  });
+  const s = status.data;
+
+  return (
+    <Card>
+      <CardHeader className="flex-row items-start justify-between gap-2 space-y-0">
+        <div className="min-w-0">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <KeyRound className="h-4 w-4" /> Anthropic API key
+          </CardTitle>
+          <CardDescription>
+            Used for resume analysis and job scoring. It's checked with Anthropic before saving, stored encrypted, and
+            never shown again. A key saved here takes priority over ANTHROPIC_API_KEY in .env.
+          </CardDescription>
+        </div>
+        <Button size="sm" variant="outline" onClick={() => test.mutate()} disabled={!s?.configured || test.isPending}>
+          {test.isPending ? <Loader2 className="animate-spin" /> : <PlugZap />} Test
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-4 text-sm">
+        <ErrorNote error={status.error} />
+        {s && (
+          <p className="flex flex-wrap items-center gap-2">
+            {s.configured ? (
+              <>
+                <CheckCircle2 className="h-4 w-4 text-success" />
+                <span>
+                  Active key <span className="font-mono">{s.masked}</span>
+                </span>
+                <Badge variant="outline">{s.source === "ui" ? "saved here" : "from .env"}</Badge>
+                {s.saved_at && <span className="text-xs text-muted-foreground">saved {fmtDateTime(s.saved_at)}</span>}
+              </>
+            ) : (
+              <>
+                <XCircle className="h-4 w-4 text-destructive" /> No key yet: resume analysis and scoring use a basic
+                keyword heuristic.
+              </>
+            )}
+          </p>
+        )}
+        {s?.unreadable && (
+          <p className="text-xs text-destructive">
+            A saved key exists but can't be decrypted (the secret key file changed). Save the key again.
+          </p>
+        )}
+        <form
+          className="flex flex-col gap-2 sm:flex-row"
+          onSubmit={(e) => {
+            e.preventDefault();
+            save.mutate();
+          }}
+        >
+          <Input
+            type="password"
+            autoComplete="off"
+            value={key}
+            onChange={(e) => setKey(e.target.value)}
+            placeholder={s?.source === "ui" ? "Paste a new key to replace it (sk-ant-…)" : "sk-ant-…"}
+            aria-label="Anthropic API key"
+          />
+          <Button type="submit" disabled={!key.trim() || save.isPending} className="shrink-0">
+            {save.isPending ? <Loader2 className="animate-spin" /> : <Save />}
+            {s?.source === "ui" ? "Replace key" : "Save key"}
+          </Button>
+          {s?.source === "ui" && (
+            <Button type="button" variant="outline" onClick={() => setConfirm(true)} className="shrink-0">
+              <Trash2 /> Remove
+            </Button>
+          )}
+        </form>
+        <ErrorNote error={save.error} />
+      </CardContent>
+      <Dialog open={confirm} onOpenChange={setConfirm}>
+        <DialogContent>
+          <DialogTitle className="text-lg font-semibold">Remove the saved Anthropic key?</DialogTitle>
+          <DialogDescription className="text-sm text-muted-foreground">
+            {s?.env_available
+              ? "JobRadar will fall back to ANTHROPIC_API_KEY from .env."
+              : "Without a key, resume analysis and scoring fall back to the keyword heuristic."}
+          </DialogDescription>
+          <ErrorNote error={remove.error} />
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setConfirm(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={() => remove.mutate()} disabled={remove.isPending}>
+              {remove.isPending && <Loader2 className="animate-spin" />} Remove key
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
@@ -232,6 +358,8 @@ export function Settings() {
 
       <ApifyCard />
 
+      <AnthropicKeyCard />
+
       <ExcludedCompaniesCard />
 
       <SeenJobsCard />
@@ -241,8 +369,8 @@ export function Settings() {
           <CardTitle className="text-base">Scoring model</CardTitle>
           <CardDescription>
             {draft.llm_configured
-              ? "ANTHROPIC_API_KEY is configured."
-              : "ANTHROPIC_API_KEY is not set: resume analysis and scoring fall back to a labelled heuristic."}
+              ? "An Anthropic key is configured."
+              : "No Anthropic key yet (add one above): resume analysis and scoring fall back to a labelled heuristic."}
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-[2fr_1fr]">

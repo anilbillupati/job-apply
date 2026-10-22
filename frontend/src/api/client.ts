@@ -1,4 +1,5 @@
 import type {
+  AnthropicKeyStatus,
   ApifyKey,
   ApifyStatus,
   AppSettings,
@@ -94,6 +95,12 @@ export const api = {
   deleteKey: (id: number) => request<{ ok: boolean }>(`/apify/keys/${id}`, { method: "DELETE" }),
   testKey: (id: number) => request<KeyTest>(`/apify/keys/${id}/test`, json("POST")),
   keyUsage: (limit = 200) => request<KeyUsage[]>(`/apify/keys/usage?limit=${limit}`),
+
+  anthropicKey: () => request<AnthropicKeyStatus>("/settings/anthropic"),
+  saveAnthropicKey: (api_key: string) => request<AnthropicKeyStatus>("/settings/anthropic", json("PUT", { api_key })),
+  removeAnthropicKey: () => request<AnthropicKeyStatus>("/settings/anthropic", { method: "DELETE" }),
+  testAnthropicKey: () =>
+    request<{ ok: boolean; detail: string; source?: string }>("/settings/anthropic/test", json("POST")),
 
   seenJobs: () => request<SeenJobs>("/seen-jobs"),
   clearSeenJobs: () => request<{ ok: boolean; deleted: number }>("/seen-jobs", { method: "DELETE" }),

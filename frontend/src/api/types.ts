@@ -307,6 +307,16 @@ export interface KeyTest extends ApifyStatus {
   masked: string;
 }
 
+export interface AnthropicKeyStatus {
+  configured: boolean;
+  source: "ui" | "env" | null;
+  masked: string | null;
+  saved_at: string | null;
+  env_available: boolean;
+  unreadable: boolean;
+  warning?: string | null;
+}
+
 export interface SeenJobs {
   total: number;
   by_reason: Record<string, number>;

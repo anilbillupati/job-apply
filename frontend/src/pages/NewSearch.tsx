@@ -331,7 +331,8 @@ function StepProfile({ state, update }: StepProps) {
           Scoring uses this profile, so correct anything that's wrong.{" "}
           {p.source === "heuristic" && (
             <span className="text-warning">
-              This is a keyword-based profile because no ANTHROPIC_API_KEY is configured. Please check it carefully.
+              This is a keyword-based profile because no Anthropic key is configured (add one in Settings). Please check
+              it carefully.
             </span>
           )}
         </CardDescription>

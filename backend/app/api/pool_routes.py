@@ -1,5 +1,8 @@
 """Endpoints for the Apify key pool, the seen-jobs history and company exclusions."""
 
+from datetime import UTC, datetime
+
+import anthropic
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 from sqlalchemy import delete, func, select
@@ -7,10 +10,11 @@ from sqlalchemy.orm import Session
 
 from app.apify.client import ApifyClient, ApifyError, summarize_limits
 from app.db import get_db
+from app.llm.client import make_client
 from app.logging_setup import redact
 from app.models import ApifyKey, SeenJob
+from app.services import anthropic_key, app_settings
 from app.services import apify_keys as keys
-from app.services import app_settings
 
 router = APIRouter()
 
@@ -185,3 +189,59 @@ def add_excluded(body: CompaniesIn, db: Session = Depends(get_db)):
     current = app_settings.get_setting(db, "excluded_companies") or []
     app_settings.update_settings(db, {"excluded_companies": _clean([*current, *body.companies])})
     return {"companies": app_settings.get_setting(db, "excluded_companies")}
+
+
+# ------------------------------------------------------------------ Anthropic key
+
+
+async def _verify_anthropic(api_key: str) -> dict:
+    """Cheap authenticated call (lists one model, no tokens used)."""
+    try:
+        client = make_client(api_key)
+        page = await client.models.list(limit=1)
+        await client.close()
+        first = next(iter(page.data), None)
+        return {"ok": True, "detail": f"key accepted (models visible, e.g. {first.id})" if first else "key accepted"}
+    except anthropic.AuthenticationError:
+        return {"ok": False, "auth_failed": True, "detail": "Anthropic rejected this key (invalid or revoked)"}
+    except anthropic.PermissionDeniedError as exc:
+        return {"ok": False, "auth_failed": True, "detail": redact(f"permission denied: {exc.message}")}
+    except anthropic.APIError as exc:
+        return {"ok": False, "detail": redact(f"{type(exc).__name__}: {exc}")[:300]}
+
+
+@router.get("/settings/anthropic")
+def anthropic_status(db: Session = Depends(get_db)):
+    return anthropic_key.status(db)
+
+
+class AnthropicKeyIn(BaseModel):
+    api_key: str = Field(min_length=20, max_length=300)
+
+
+@router.put("/settings/anthropic")
+async def save_anthropic_key(body: AnthropicKeyIn, db: Session = Depends(get_db)):
+    try:
+        key = anthropic_key.validate(body.api_key)
+    except anthropic_key.AnthropicKeyError as exc:
+        raise HTTPException(400, str(exc)) from None
+    check = await _verify_anthropic(key)
+    if check.get("auth_failed"):
+        raise HTTPException(400, check["detail"])
+    anthropic_key.save(db, key, datetime.now(UTC).isoformat(timespec="seconds"))
+    warning = None if check["ok"] else f"Saved, but the key could not be verified right now: {check['detail']}"
+    return anthropic_key.status(db) | {"warning": warning}
+
+
+@router.delete("/settings/anthropic")
+def remove_anthropic_key(db: Session = Depends(get_db)):
+    removed = anthropic_key.remove(db)
+    return anthropic_key.status(db) | {"removed": removed}
+
+
+@router.post("/settings/anthropic/test")
+async def test_anthropic_key(db: Session = Depends(get_db)):
+    key, source = anthropic_key.resolve(db)
+    if key is None:
+        return {"ok": False, "detail": "No Anthropic API key configured"}
+    return await _verify_anthropic(key) | {"source": source}
