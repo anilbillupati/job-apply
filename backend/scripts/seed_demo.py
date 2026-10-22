@@ -64,7 +64,7 @@ async def seed(use_llm: bool, export: str | None, min_score: int) -> int:
             jobs = final_jobs_query(db, run)
             Path(export).write_bytes(build_workbook(jobs, full=False, run=run))
             print(f"  exported {len(jobs)} rows to {export}")
-        print(f"\nOpen http://localhost:5173/runs/{run.id}/results to explore it.")
+        print(f"\nIn the UI, open /runs/{run.id}/results (http://localhost:5173 with make dev, :8080 with Docker).")
         return run.id
 
 
