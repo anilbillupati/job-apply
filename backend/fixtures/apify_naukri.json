@@ -1,0 +1,617 @@
+[
+ {
+  "id": "220000000000",
+  "title": "Software Engineer - Backend (Java)",
+  "url": "https://www.naukri.com/job-listings-software-engineer---backend-(java)-atlassian-bengaluru-2-to-5-years-220000000000",
+  "company": {
+   "name": "Atlassian"
+  },
+  "experience": {
+   "minimum": 2,
+   "maximum": 5
+  },
+  "description": {
+   "full": "<p>Job description - Software Engineer - Backend (Java)</p><p>About Atlassian</p><p>Atlassian builds products in developer collaboration tools. We are hiring a Software Engineer - Backend (Java) to join our engineering team in Bengaluru.</p><p>What you will do</p><li>Design, build and own Java services that handle high request volumes with low latency.</li><li>Write clean, well-tested code and take part in code reviews and design discussions.</li><li>Build and maintain REST APIs and integrations with internal and partner systems.</li><li>Work with product managers and other engineers to ship features end to end.</li><li>Improve observability, reliability and performance of production systems.</li><li>Contribute to Spring Boot-based components and help improve our deployment pipeline.</li><p>What we are looking for (mandatory)</p><li>2-5 years of professional software development experience.</li><li>Strong hands-on experience with Java, Spring Boot, Microservices.</li><li>Working knowledge of AWS, PostgreSQL.</li><li>Bachelor's degree in Computer Science or a related field, or equivalent experience.</li><p>Good to have</p><li>Exposure to Kafka, Kubernetes.</li><p>Benefits: health insurance, learning budget, flexible hours.</p>"
+  },
+  "_days_ago": 2,
+  "locations": [
+   {
+    "label": "Bengaluru"
+   }
+  ],
+  "wfhType": 3,
+  "consultant": false,
+  "salary": {
+   "label": "Not disclosed"
+  },
+  "applyCount": 45,
+  "companyApplyJob": false,
+  "_city": "Bengaluru",
+  "_demo_status": "active"
+ },
+ {
+  "id": "220000209458",
+  "title": "Software Engineer II - Java Microservices",
+  "url": "https://www.naukri.com/job-listings-software-engineer-ii---java-microservices-jpmorgan-hyderabad-3-to-6-years-220000209458",
+  "company": {
+   "name": "JPMorgan Chase & Co."
+  },
+  "experience": {
+   "minimum": 3,
+   "maximum": 6
+  },
+  "description": {
+   "full": "<p>Job description - Software Engineer II - Java Microservices</p><p>About JPMorgan Chase & Co.</p><p>JPMorgan Chase & Co. builds products in corporate and investment banking. We are hiring a Software Engineer II - Java Microservices to join our engineering team in Hyderabad.</p><p>What you will do</p><li>Design, build and own Java services that handle high request volumes with low latency.</li><li>Write clean, well-tested code and take part in code reviews and design discussions.</li><li>Build and maintain REST APIs and integrations with internal and partner systems.</li><li>Work with product managers and other engineers to ship features end to end.</li><li>Improve observability, reliability and performance of production systems.</li><li>Contribute to Spring Boot-based components and help improve our deployment pipeline.</li><p>What we are looking for (mandatory)</p><li>3-6 years of professional software development experience.</li><li>Strong hands-on experience with Java, Spring Boot, Microservices.</li><li>Working knowledge of REST, AWS.</li><li>Bachelor's degree in Computer Science or a related field, or equivalent experience.</li><p>Good to have</p><li>Exposure to Terraform.</li><p>Benefits: health insurance, learning budget, flexible hours.</p>"
+  },
+  "_days_ago": 0,
+  "locations": [
+   {
+    "label": "Hyderabad"
+   }
+  ],
+  "wfhType": 0,
+  "consultant": false,
+  "salary": {
+   "label": "12-20 Lacs P.A."
+  },
+  "applyCount": 45,
+  "companyApplyJob": true,
+  "_city": "Hyderabad",
+  "_demo_status": "active"
+ },
+ {
+  "id": "220000314187",
+  "title": "Software Engineer - Python Backend",
+  "url": "https://www.naukri.com/job-listings-software-engineer---python-backend-freshworks-chennai-2-to-5-years-220000314187",
+  "company": {
+   "name": "Freshworks"
+  },
+  "experience": {
+   "minimum": 2,
+   "maximum": 5
+  },
+  "description": {
+   "full": "<p>Job description - Software Engineer - Python Backend</p><p>About Freshworks</p><p>Freshworks builds products in customer engagement SaaS. We are hiring a Software Engineer - Python Backend to join our engineering team in Chennai.</p><p>What you will do</p><li>Design, build and own Python services that handle high request volumes with low latency.</li><li>Write clean, well-tested code and take part in code reviews and design discussions.</li><li>Build and maintain REST APIs and integrations with internal and partner systems.</li><li>Work with product managers and other engineers to ship features end to end.</li><li>Improve observability, reliability and performance of production systems.</li><li>Contribute to Django-based components and help improve our deployment pipeline.</li><p>What we are looking for (mandatory)</p><li>2-5 years of professional software development experience.</li><li>Strong hands-on experience with Python, Django, PostgreSQL.</li><li>Working knowledge of REST, Docker.</li><li>Bachelor's degree in Computer Science or a related field, or equivalent experience.</li><p>Good to have</p><li>Exposure to Celery.</li><p>Benefits: health insurance, learning budget, flexible hours.</p>"
+  },
+  "_days_ago": 5,
+  "locations": [
+   {
+    "label": "Chennai"
+   }
+  ],
+  "wfhType": 3,
+  "consultant": false,
+  "salary": {
+   "label": "8-14 Lacs P.A."
+  },
+  "applyCount": 45,
+  "companyApplyJob": false,
+  "_city": "Chennai",
+  "_demo_status": "active"
+ },
+ {
+  "id": "220000733103",
+  "title": "Java Developer",
+  "url": "https://www.naukri.com/job-listings-java-developer-zoho-chennai-1-to-4-years-220000733103",
+  "company": {
+   "name": "Zoho Corporation"
+  },
+  "experience": {
+   "minimum": 1,
+   "maximum": 4
+  },
+  "description": {
+   "full": "<p>Job description - Java Developer</p><p>About Zoho Corporation</p><p>Zoho Corporation builds products in business software. We are hiring a Java Developer to join our engineering team in Chennai.</p><p>What you will do</p><li>Design, build and own Java services that handle high request volumes with low latency.</li><li>Write clean, well-tested code and take part in code reviews and design discussions.</li><li>Build and maintain REST APIs and integrations with internal and partner systems.</li><li>Work with product managers and other engineers to ship features end to end.</li><li>Improve observability, reliability and performance of production systems.</li><li>Contribute to SQL-based components and help improve our deployment pipeline.</li><p>What we are looking for (mandatory)</p><li>1-4 years of professional software development experience.</li><li>Strong hands-on experience with Java, SQL, REST.</li><li>Working knowledge of JavaScript.</li><li>Bachelor's degree in Computer Science or a related field, or equivalent experience.</li><p>Benefits: health insurance, learning budget, flexible hours.</p>"
+  },
+  "_days_ago": 2,
+  "locations": [
+   {
+    "label": "Chennai"
+   }
+  ],
+  "wfhType": 0,
+  "consultant": false,
+  "salary": {
+   "label": "Not disclosed"
+  },
+  "applyCount": 45,
+  "companyApplyJob": false,
+  "_city": "Chennai",
+  "_demo_status": "active"
+ },
+ {
+  "id": "220000837832",
+  "title": "Application Developer - Java Full Stack",
+  "url": "https://www.naukri.com/job-listings-application-developer---java-full-stack-thoughtworks-pune-2-to-5-years-220000837832",
+  "company": {
+   "name": "Thoughtworks"
+  },
+  "experience": {
+   "minimum": 2,
+   "maximum": 5
+  },
+  "description": {
+   "full": "<p>Job description - Application Developer - Java Full Stack</p><p>About Thoughtworks</p><p>Thoughtworks builds products in consulting-led product engineering. We are hiring a Application Developer - Java Full Stack to join our engineering team in Pune.</p><p>What you will do</p><li>Design, build and own Java services that handle high request volumes with low latency.</li><li>Write clean, well-tested code and take part in code reviews and design discussions.</li><li>Build and maintain REST APIs and integrations with internal and partner systems.</li><li>Work with product managers and other engineers to ship features end to end.</li><li>Improve observability, reliability and performance of production systems.</li><li>Contribute to Spring Boot-based components and help improve our deployment pipeline.</li><p>What we are looking for (mandatory)</p><li>2-5 years of professional software development experience.</li><li>Strong hands-on experience with Java, Spring Boot, React.</li><li>Working knowledge of Docker, CI/CD.</li><li>Bachelor's degree in Computer Science or a related field, or equivalent experience.</li><p>Good to have</p><li>Exposure to Kotlin.</li><p>Benefits: health insurance, learning budget, flexible hours.</p>"
+  },
+  "_days_ago": 3,
+  "locations": [
+   {
+    "label": "Pune"
+   }
+  ],
+  "wfhType": 0,
+  "consultant": false,
+  "salary": {
+   "label": "18-30 Lacs P.A."
+  },
+  "applyCount": 120,
+  "companyApplyJob": false,
+  "_city": "Pune",
+  "_demo_status": "active"
+ },
+ {
+  "id": "220001047290",
+  "title": "Software Engineer - Backend (Java)",
+  "url": "https://www.naukri.com/job-listings-software-engineer---backend-(java)-phonepe-pune-2-to-5-years-220001047290",
+  "company": {
+   "name": "PhonePe"
+  },
+  "experience": {
+   "minimum": 2,
+   "maximum": 5
+  },
+  "description": {
+   "full": "<p>Job description - Software Engineer - Backend (Java)</p><p>About PhonePe</p><p>PhonePe builds products in digital payments. We are hiring a Software Engineer - Backend (Java) to join our engineering team in Pune.</p><p>What you will do</p><li>Design, build and own Java services that handle high request volumes with low latency.</li><li>Write clean, well-tested code and take part in code reviews and design discussions.</li><li>Build and maintain REST APIs and integrations with internal and partner systems.</li><li>Work with product managers and other engineers to ship features end to end.</li><li>Improve observability, reliability and performance of production systems.</li><li>Contribute to Spring Boot-based components and help improve our deployment pipeline.</li><p>What we are looking for (mandatory)</p><li>2-5 years of professional software development experience.</li><li>Strong hands-on experience with Java, Spring Boot, Kafka.</li><li>Working knowledge of Aerospike, Microservices.</li><li>Bachelor's degree in Computer Science or a related field, or equivalent experience.</li><p>Benefits: health insurance, learning budget, flexible hours.</p>"
+  },
+  "_days_ago": 4,
+  "locations": [
+   {
+    "label": "Pune"
+   }
+  ],
+  "wfhType": 0,
+  "consultant": false,
+  "salary": {
+   "label": "8-14 Lacs P.A."
+  },
+  "applyCount": 300,
+  "companyApplyJob": true,
+  "_city": "Pune",
+  "_demo_status": "active"
+ },
+ {
+  "id": "220001466206",
+  "title": "AI Engineer - Conversational AI",
+  "url": "https://www.naukri.com/job-listings-ai-engineer---conversational-ai-haptik-remote-2-to-5-years-220001466206",
+  "company": {
+   "name": "Haptik"
+  },
+  "experience": {
+   "minimum": 2,
+   "maximum": 5
+  },
+  "description": {
+   "full": "<p>Job description - AI Engineer - Conversational AI</p><p>About Haptik</p><p>Haptik builds products in conversational AI. We are hiring a AI Engineer - Conversational AI to join our engineering team (remote, India).</p><p>What you will do</p><li>Design, build and own Python services that handle high request volumes with low latency.</li><li>Write clean, well-tested code and take part in code reviews and design discussions.</li><li>Build and maintain REST APIs and integrations with internal and partner systems.</li><li>Work with product managers and other engineers to ship features end to end.</li><li>Improve observability, reliability and performance of production systems.</li><li>Contribute to LLM-based components and help improve our deployment pipeline.</li><p>What we are looking for (mandatory)</p><li>2-5 years of professional software development experience.</li><li>Strong hands-on experience with Python, LLM, LangChain.</li><li>Working knowledge of RAG, FastAPI.</li><li>Bachelor's degree in Computer Science or a related field, or equivalent experience.</li><p>Good to have</p><li>Exposure to Docker.</li><p>Benefits: health insurance, learning budget, flexible hours.</p>"
+  },
+  "_days_ago": 2,
+  "locations": [
+   {
+    "label": "Bengaluru"
+   },
+   {
+    "label": "Hyderabad"
+   }
+  ],
+  "wfhType": 2,
+  "consultant": false,
+  "salary": {
+   "label": "8-14 Lacs P.A."
+  },
+  "applyCount": 900,
+  "companyApplyJob": false,
+  "_city": "Remote",
+  "_demo_status": "active"
+ },
+ {
+  "id": "220001675664",
+  "title": "Java Developer - Spring Boot",
+  "url": "https://www.naukri.com/job-listings-java-developer---spring-boot-infosys-hyderabad-3-to-6-years-220001675664",
+  "company": {
+   "name": "Infosys"
+  },
+  "experience": {
+   "minimum": 3,
+   "maximum": 6
+  },
+  "description": {
+   "full": "<p>Job description - Java Developer - Spring Boot</p><p>About Infosys</p><p>Infosys builds products in IT services for a banking client. We are hiring a Java Developer - Spring Boot to join our engineering team in Hyderabad.</p><p>What you will do</p><li>Design, build and own Java services that handle high request volumes with low latency.</li><li>Write clean, well-tested code and take part in code reviews and design discussions.</li><li>Build and maintain REST APIs and integrations with internal and partner systems.</li><li>Work with product managers and other engineers to ship features end to end.</li><li>Improve observability, reliability and performance of production systems.</li><li>Contribute to Spring Boot-based components and help improve our deployment pipeline.</li><p>What we are looking for (mandatory)</p><li>3-6 years of professional software development experience.</li><li>Strong hands-on experience with Java, Spring Boot, Microservices.</li><li>Working knowledge of SQL.</li><li>Bachelor's degree in Computer Science or a related field, or equivalent experience.</li><p>Benefits: health insurance, learning budget, flexible hours.</p>"
+  },
+  "_days_ago": 3,
+  "locations": [
+   {
+    "label": "Mumbai"
+   },
+   {
+    "label": "Hyderabad"
+   },
+   {
+    "label": "Noida"
+   }
+  ],
+  "wfhType": 3,
+  "consultant": false,
+  "salary": {
+   "label": "Not disclosed"
+  },
+  "applyCount": 45,
+  "companyApplyJob": true,
+  "_city": "Hyderabad",
+  "_demo_status": "active"
+ },
+ {
+  "id": "220001780393",
+  "title": "Python Developer",
+  "url": "https://www.naukri.com/job-listings-python-developer-tata-chennai-3-to-7-years-220001780393",
+  "company": {
+   "name": "Tata Consultancy Services"
+  },
+  "experience": {
+   "minimum": 3,
+   "maximum": 7
+  },
+  "description": {
+   "full": "<p>Job description - Python Developer</p><p>About Tata Consultancy Services</p><p>Tata Consultancy Services builds products in IT services. We are hiring a Python Developer to join our engineering team in Chennai.</p><p>What you will do</p><li>Design, build and own Python services that handle high request volumes with low latency.</li><li>Write clean, well-tested code and take part in code reviews and design discussions.</li><li>Build and maintain REST APIs and integrations with internal and partner systems.</li><li>Work with product managers and other engineers to ship features end to end.</li><li>Improve observability, reliability and performance of production systems.</li><li>Contribute to Django-based components and help improve our deployment pipeline.</li><p>What we are looking for (mandatory)</p><li>3-7 years of professional software development experience.</li><li>Strong hands-on experience with Python, Django, SQL.</li><li>Working knowledge of AWS.</li><li>Bachelor's degree in Computer Science or a related field, or equivalent experience.</li><p>Benefits: health insurance, learning budget, flexible hours.</p>"
+  },
+  "_days_ago": 5,
+  "locations": [
+   {
+    "label": "Chennai"
+   }
+  ],
+  "wfhType": 0,
+  "consultant": false,
+  "salary": {
+   "label": "18-30 Lacs P.A."
+  },
+  "applyCount": 45,
+  "companyApplyJob": true,
+  "_city": "Chennai",
+  "_demo_status": "captcha"
+ },
+ {
+  "id": "220001989851",
+  "title": "Generative AI Engineer",
+  "url": "https://www.naukri.com/job-listings-generative-ai-engineer-ola-bengaluru-2-to-5-years-220001989851",
+  "company": {
+   "name": "Ola Krutrim"
+  },
+  "experience": {
+   "minimum": 2,
+   "maximum": 5
+  },
+  "description": {
+   "full": "<p>Job description - Generative AI Engineer</p><p>About Ola Krutrim</p><p>Ola Krutrim builds products in AI cloud and models. We are hiring a Generative AI Engineer to join our engineering team in Bengaluru.</p><p>What you will do</p><li>Design, build and own Python services that handle high request volumes with low latency.</li><li>Write clean, well-tested code and take part in code reviews and design discussions.</li><li>Build and maintain REST APIs and integrations with internal and partner systems.</li><li>Work with product managers and other engineers to ship features end to end.</li><li>Improve observability, reliability and performance of production systems.</li><li>Contribute to PyTorch-based components and help improve our deployment pipeline.</li><p>What we are looking for (mandatory)</p><li>2-5 years of professional software development experience.</li><li>Strong hands-on experience with Python, PyTorch, LLM.</li><li>Working knowledge of RAG, Kubernetes.</li><li>Bachelor's degree in Computer Science or a related field, or equivalent experience.</li><p>Benefits: health insurance, learning budget, flexible hours.</p>"
+  },
+  "_days_ago": 3,
+  "locations": [
+   {
+    "label": "Bengaluru"
+   }
+  ],
+  "wfhType": 0,
+  "consultant": false,
+  "salary": {
+   "label": "8-14 Lacs P.A."
+  },
+  "applyCount": 900,
+  "companyApplyJob": true,
+  "_city": "Bengaluru",
+  "_demo_status": "active"
+ },
+ {
+  "id": "220002094580",
+  "title": "SDE II - Java",
+  "url": "https://www.naukri.com/job-listings-sde-ii---java-darwinbox-hyderabad-3-to-5-years-220002094580",
+  "company": {
+   "name": "Darwinbox"
+  },
+  "experience": {
+   "minimum": 3,
+   "maximum": 5
+  },
+  "description": {
+   "full": "<p>Job description - SDE II - Java</p><p>About Darwinbox</p><p>Darwinbox builds products in HR tech SaaS. We are hiring a SDE II - Java to join our engineering team in Hyderabad.</p><p>What you will do</p><li>Design, build and own Java services that handle high request volumes with low latency.</li><li>Write clean, well-tested code and take part in code reviews and design discussions.</li><li>Build and maintain REST APIs and integrations with internal and partner systems.</li><li>Work with product managers and other engineers to ship features end to end.</li><li>Improve observability, reliability and performance of production systems.</li><li>Contribute to Spring Boot-based components and help improve our deployment pipeline.</li><p>What we are looking for (mandatory)</p><li>3-5 years of professional software development experience.</li><li>Strong hands-on experience with Java, Spring Boot, MongoDB.</li><li>Working knowledge of Microservices, AWS.</li><li>Bachelor's degree in Computer Science or a related field, or equivalent experience.</li><p>Good to have</p><li>Exposure to Elasticsearch.</li><p>Benefits: health insurance, learning budget, flexible hours.</p>"
+  },
+  "_days_ago": 1,
+  "locations": [
+   {
+    "label": "Hyderabad"
+   }
+  ],
+  "wfhType": 0,
+  "consultant": false,
+  "salary": {
+   "label": "18-30 Lacs P.A."
+  },
+  "applyCount": 900,
+  "companyApplyJob": true,
+  "_city": "Hyderabad",
+  "_demo_status": "active"
+ },
+ {
+  "id": "220002408767",
+  "title": "AI Engineer - LLM Applications",
+  "url": "https://www.naukri.com/job-listings-ai-engineer---llm-applications-fractal-pune-2-to-5-years-220002408767",
+  "company": {
+   "name": "Fractal Analytics"
+  },
+  "experience": {
+   "minimum": 2,
+   "maximum": 5
+  },
+  "description": {
+   "full": "<p>Job description - AI Engineer - LLM Applications</p><p>About Fractal Analytics</p><p>Fractal Analytics builds products in AI and analytics for enterprises. We are hiring a AI Engineer - LLM Applications to join our engineering team in Pune.</p><p>What you will do</p><li>Design, build and own Python services that handle high request volumes with low latency.</li><li>Write clean, well-tested code and take part in code reviews and design discussions.</li><li>Build and maintain REST APIs and integrations with internal and partner systems.</li><li>Work with product managers and other engineers to ship features end to end.</li><li>Improve observability, reliability and performance of production systems.</li><li>Contribute to LLM-based components and help improve our deployment pipeline.</li><p>What we are looking for (mandatory)</p><li>2-5 years of professional software development experience.</li><li>Strong hands-on experience with Python, LLM, RAG.</li><li>Working knowledge of LangChain, Azure.</li><li>Bachelor's degree in Computer Science or a related field, or equivalent experience.</li><p>Good to have</p><li>Exposure to Docker.</li><p>Benefits: health insurance, learning budget, flexible hours.</p>"
+  },
+  "_days_ago": 3,
+  "locations": [
+   {
+    "label": "Pune"
+   }
+  ],
+  "wfhType": 3,
+  "consultant": false,
+  "salary": {
+   "label": "18-30 Lacs P.A."
+  },
+  "applyCount": 300,
+  "companyApplyJob": false,
+  "_city": "Pune",
+  "_demo_status": "active"
+ },
+ {
+  "id": "220002513496",
+  "title": "Java Backend Developer",
+  "url": "https://www.naukri.com/job-listings-java-backend-developer-highradius-hyderabad-2-to-5-years-220002513496",
+  "company": {
+   "name": "HighRadius"
+  },
+  "experience": {
+   "minimum": 2,
+   "maximum": 5
+  },
+  "description": {
+   "full": "<p>Job description - Java Backend Developer</p><p>About HighRadius</p><p>HighRadius builds products in finance automation SaaS. We are hiring a Java Backend Developer to join our engineering team in Hyderabad.</p><p>What you will do</p><li>Design, build and own Java services that handle high request volumes with low latency.</li><li>Write clean, well-tested code and take part in code reviews and design discussions.</li><li>Build and maintain REST APIs and integrations with internal and partner systems.</li><li>Work with product managers and other engineers to ship features end to end.</li><li>Improve observability, reliability and performance of production systems.</li><li>Contribute to Spring Boot-based components and help improve our deployment pipeline.</li><p>What we are looking for (mandatory)</p><li>2-5 years of professional software development experience.</li><li>Strong hands-on experience with Java, Spring Boot, SQL.</li><li>Working knowledge of REST, Kafka.</li><li>Bachelor's degree in Computer Science or a related field, or equivalent experience.</li><p>Benefits: health insurance, learning budget, flexible hours.</p>"
+  },
+  "_days_ago": 6,
+  "locations": [
+   {
+    "label": "Hyderabad"
+   }
+  ],
+  "wfhType": 0,
+  "consultant": false,
+  "salary": {
+   "label": "8-14 Lacs P.A."
+  },
+  "applyCount": 45,
+  "companyApplyJob": true,
+  "_city": "Hyderabad",
+  "_demo_status": "expired"
+ },
+ {
+  "id": "220002618225",
+  "title": "Python Developer - AI Agents",
+  "url": "https://www.naukri.com/job-listings-python-developer---ai-agents-kore.ai-hyderabad-2-to-4-years-220002618225",
+  "company": {
+   "name": "Kore.ai"
+  },
+  "experience": {
+   "minimum": 2,
+   "maximum": 4
+  },
+  "description": {
+   "full": "<p>Job description - Python Developer - AI Agents</p><p>About Kore.ai</p><p>Kore.ai builds products in AI agent platform. We are hiring a Python Developer - AI Agents to join our engineering team in Hyderabad.</p><p>What you will do</p><li>Design, build and own Python services that handle high request volumes with low latency.</li><li>Write clean, well-tested code and take part in code reviews and design discussions.</li><li>Build and maintain REST APIs and integrations with internal and partner systems.</li><li>Work with product managers and other engineers to ship features end to end.</li><li>Improve observability, reliability and performance of production systems.</li><li>Contribute to FastAPI-based components and help improve our deployment pipeline.</li><p>What we are looking for (mandatory)</p><li>2-4 years of professional software development experience.</li><li>Strong hands-on experience with Python, FastAPI, LLM.</li><li>Working knowledge of MongoDB, Docker.</li><li>Bachelor's degree in Computer Science or a related field, or equivalent experience.</li><p>Benefits: health insurance, learning budget, flexible hours.</p>"
+  },
+  "_days_ago": 5,
+  "locations": [
+   {
+    "label": "Hyderabad"
+   }
+  ],
+  "wfhType": 0,
+  "consultant": false,
+  "salary": {
+   "label": "Not disclosed"
+  },
+  "applyCount": 120,
+  "companyApplyJob": true,
+  "_city": "Hyderabad",
+  "_demo_status": "active"
+ },
+ {
+  "id": "220002722954",
+  "title": "Full Stack Developer Java",
+  "url": "https://www.naukri.com/job-listings-full-stack-developer-java-accenture-bengaluru-3-to-6-years-220002722954",
+  "company": {
+   "name": "Accenture"
+  },
+  "experience": {
+   "minimum": 3,
+   "maximum": 6
+  },
+  "description": {
+   "full": "<p>Job description - Full Stack Developer Java</p><p>About Accenture</p><p>Accenture builds products in IT consulting. We are hiring a Full Stack Developer Java to join our engineering team in Bengaluru.</p><p>What you will do</p><li>Design, build and own Java services that handle high request volumes with low latency.</li><li>Write clean, well-tested code and take part in code reviews and design discussions.</li><li>Build and maintain REST APIs and integrations with internal and partner systems.</li><li>Work with product managers and other engineers to ship features end to end.</li><li>Improve observability, reliability and performance of production systems.</li><li>Contribute to Spring Boot-based components and help improve our deployment pipeline.</li><p>What we are looking for (mandatory)</p><li>3-6 years of professional software development experience.</li><li>Strong hands-on experience with Java, Spring Boot, Angular.</li><li>Working knowledge of SQL.</li><li>Bachelor's degree in Computer Science or a related field, or equivalent experience.</li><p>Benefits: health insurance, learning budget, flexible hours.</p>"
+  },
+  "_days_ago": 1,
+  "locations": [
+   {
+    "label": "Mumbai"
+   },
+   {
+    "label": "Bengaluru"
+   },
+   {
+    "label": "Noida"
+   }
+  ],
+  "wfhType": 0,
+  "consultant": false,
+  "salary": {
+   "label": "18-30 Lacs P.A."
+  },
+  "applyCount": 45,
+  "companyApplyJob": false,
+  "_city": "Bengaluru",
+  "_demo_status": "active"
+ },
+ {
+  "id": "220002932412",
+  "title": "Java Developer",
+  "url": "https://www.naukri.com/job-listings-java-developer-randstad-pune-3-to-6-years-220002932412",
+  "company": {
+   "name": "Randstad India"
+  },
+  "experience": {
+   "minimum": 3,
+   "maximum": 6
+  },
+  "description": {
+   "full": "<p>Job description - Java Developer</p><p>About Randstad India</p><p>Randstad India builds products in staffing. We are hiring a Java Developer to join our engineering team in Pune.</p><p>What you will do</p><li>Design, build and own Java services that handle high request volumes with low latency.</li><li>Write clean, well-tested code and take part in code reviews and design discussions.</li><li>Build and maintain REST APIs and integrations with internal and partner systems.</li><li>Work with product managers and other engineers to ship features end to end.</li><li>Improve observability, reliability and performance of production systems.</li><li>Contribute to Spring Boot-based components and help improve our deployment pipeline.</li><p>What we are looking for (mandatory)</p><li>3-6 years of professional software development experience.</li><li>Strong hands-on experience with Java, Spring Boot, SQL.</li><li>Bachelor's degree in Computer Science or a related field, or equivalent experience.</li><p>Benefits: health insurance, learning budget, flexible hours.</p>"
+  },
+  "_days_ago": 4,
+  "locations": [
+   {
+    "label": "Pune"
+   }
+  ],
+  "wfhType": 0,
+  "consultant": true,
+  "salary": {
+   "label": "Not disclosed"
+  },
+  "applyCount": 120,
+  "companyApplyJob": true,
+  "_city": "Pune",
+  "_demo_status": "active"
+ },
+ {
+  "id": "220003246599",
+  "title": "Senior Software Engineer - Backend",
+  "url": "https://www.naukri.com/job-listings-senior-software-engineer---backend-flipkart-bengaluru-5-to-9-years-220003246599",
+  "company": {
+   "name": "Flipkart"
+  },
+  "experience": {
+   "minimum": 5,
+   "maximum": 9
+  },
+  "description": {
+   "full": "<p>Job description - Senior Software Engineer - Backend</p><p>About Flipkart</p><p>Flipkart builds products in e-commerce. We are hiring a Senior Software Engineer - Backend to join our engineering team in Bengaluru.</p><p>What you will do</p><li>Design, build and own Java services that handle high request volumes with low latency.</li><li>Write clean, well-tested code and take part in code reviews and design discussions.</li><li>Build and maintain REST APIs and integrations with internal and partner systems.</li><li>Work with product managers and other engineers to ship features end to end.</li><li>Improve observability, reliability and performance of production systems.</li><li>Contribute to Microservices-based components and help improve our deployment pipeline.</li><p>What we are looking for (mandatory)</p><li>5-9 years of professional software development experience.</li><li>Strong hands-on experience with Java, Microservices, Kafka.</li><li>Bachelor's degree in Computer Science or a related field, or equivalent experience.</li><p>Benefits: health insurance, learning budget, flexible hours.</p>"
+  },
+  "_days_ago": 0,
+  "locations": [
+   {
+    "label": "Bengaluru"
+   }
+  ],
+  "wfhType": 0,
+  "consultant": false,
+  "salary": {
+   "label": "8-14 Lacs P.A."
+  },
+  "applyCount": 900,
+  "companyApplyJob": true,
+  "_city": "Bengaluru",
+  "_demo_status": "active"
+ },
+ {
+  "id": "220003456057",
+  "title": "Python Tutor",
+  "url": "https://www.naukri.com/job-listings-python-tutor-byju's-bengaluru-1-to-3-years-220003456057",
+  "company": {
+   "name": "Byju's"
+  },
+  "experience": {
+   "minimum": 1,
+   "maximum": 3
+  },
+  "description": {
+   "full": "<p>Job description - Python Tutor</p><p>About Byju's</p><p>Byju's builds products in edtech. We are hiring a Python Tutor to join our engineering team in Bengaluru.</p><p>What you will do</p><li>Design, build and own Python services that handle high request volumes with low latency.</li><li>Write clean, well-tested code and take part in code reviews and design discussions.</li><li>Build and maintain REST APIs and integrations with internal and partner systems.</li><li>Work with product managers and other engineers to ship features end to end.</li><li>Improve observability, reliability and performance of production systems.</li><li>Contribute to Git-based components and help improve our deployment pipeline.</li><p>What we are looking for (mandatory)</p><li>1-3 years of professional software development experience.</li><li>Strong hands-on experience with Python.</li><li>Bachelor's degree in Computer Science or a related field, or equivalent experience.</li><p>Benefits: health insurance, learning budget, flexible hours.</p>"
+  },
+  "_days_ago": 5,
+  "locations": [
+   {
+    "label": "Bengaluru"
+   }
+  ],
+  "wfhType": 0,
+  "consultant": false,
+  "salary": {
+   "label": "18-30 Lacs P.A."
+  },
+  "applyCount": 900,
+  "companyApplyJob": false,
+  "_city": "Bengaluru",
+  "_demo_status": "active"
+ },
+ {
+  "id": "220003560786",
+  "title": "SAP ABAP Developer",
+  "url": "https://www.naukri.com/job-listings-sap-abap-developer-deloitte-hyderabad-3-to-6-years-220003560786",
+  "company": {
+   "name": "Deloitte"
+  },
+  "experience": {
+   "minimum": 3,
+   "maximum": 6
+  },
+  "description": {
+   "full": "<p>Job description - SAP ABAP Developer</p><p>About Deloitte</p><p>Deloitte builds products in consulting. We are hiring a SAP ABAP Developer to join our engineering team in Hyderabad.</p><p>What you will do</p><li>Design, build and own SAP services that handle high request volumes with low latency.</li><li>Write clean, well-tested code and take part in code reviews and design discussions.</li><li>Build and maintain REST APIs and integrations with internal and partner systems.</li><li>Work with product managers and other engineers to ship features end to end.</li><li>Improve observability, reliability and performance of production systems.</li><li>Contribute to ABAP-based components and help improve our deployment pipeline.</li><p>What we are looking for (mandatory)</p><li>3-6 years of professional software development experience.</li><li>Strong hands-on experience with SAP, ABAP.</li><li>Bachelor's degree in Computer Science or a related field, or equivalent experience.</li><p>Benefits: health insurance, learning budget, flexible hours.</p>"
+  },
+  "_days_ago": 4,
+  "locations": [
+   {
+    "label": "Hyderabad"
+   }
+  ],
+  "wfhType": 0,
+  "consultant": false,
+  "salary": {
+   "label": "12-20 Lacs P.A."
+  },
+  "applyCount": 300,
+  "companyApplyJob": false,
+  "_city": "Hyderabad",
+  "_demo_status": "active"
+ },
+ {
+  "id": "220003770244",
+  "title": "Backend Engineer - Java",
+  "url": "https://www.naukri.com/job-listings-backend-engineer---java-cred-bengaluru-7-to-10-years-220003770244",
+  "company": {
+   "name": "Cred"
+  },
+  "experience": {
+   "minimum": 7,
+   "maximum": 10
+  },
+  "description": {
+   "full": "<p>Job description - Backend Engineer - Java</p><p>About Cred</p><p>Cred builds products in fintech. We are hiring a Backend Engineer - Java to join our engineering team in Bengaluru.</p><p>What you will do</p><li>Design, build and own Java services that handle high request volumes with low latency.</li><li>Write clean, well-tested code and take part in code reviews and design discussions.</li><li>Build and maintain REST APIs and integrations with internal and partner systems.</li><li>Work with product managers and other engineers to ship features end to end.</li><li>Improve observability, reliability and performance of production systems.</li><li>Contribute to Microservices-based components and help improve our deployment pipeline.</li><p>What we are looking for (mandatory)</p><li>7-10 years of professional software development experience.</li><li>Strong hands-on experience with Java, Microservices.</li><li>Bachelor's degree in Computer Science or a related field, or equivalent experience.</li><p>Benefits: health insurance, learning budget, flexible hours.</p>"
+  },
+  "_days_ago": 6,
+  "locations": [
+   {
+    "label": "Bengaluru"
+   }
+  ],
+  "wfhType": 3,
+  "consultant": false,
+  "salary": {
+   "label": "18-30 Lacs P.A."
+  },
+  "applyCount": 45,
+  "companyApplyJob": true,
+  "_city": "Bengaluru",
+  "_demo_status": "active"
+ }
+]

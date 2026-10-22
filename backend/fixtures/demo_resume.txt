@@ -1,0 +1,36 @@
+=== RESUME 1: Demo_Candidate_Java.pdf ===
+DEMO CANDIDATE
+Software Engineer | Hyderabad, India | demo.candidate@example.com
+
+SUMMARY
+Backend engineer with 3.5 years of experience building Java and Python microservices for fintech and SaaS products,
+recently focused on LLM-powered features (RAG, agents).
+
+EXPERIENCE
+Software Engineer II, Finlytics Technologies Pvt Ltd, Hyderabad (Jan 2024 - Present)
+- Built Spring Boot microservices for loan origination handling 2M requests/day on AWS (ECS, RDS PostgreSQL).
+- Reduced p95 API latency by 60% by introducing Redis caching and query optimisation.
+- Designed a RAG-based support assistant (Python, FastAPI, LangChain, pgvector) that deflected 35% of tier-1 tickets.
+- Migrated batch jobs to Kafka event streams, cutting end-of-day processing time from 4 hours to 50 minutes.
+
+Software Engineer, CloudNest Solutions, Bengaluru (Apr 2022 - Dec 2023)
+- Developed REST APIs in Java 17 / Spring Boot and Python (Django) for a B2B invoicing SaaS.
+- Wrote JUnit and pytest suites raising coverage from 45% to 82%; set up GitHub Actions CI/CD with Docker.
+- Containerised 12 services and moved them to Kubernetes (EKS).
+
+EDUCATION
+B.Tech, Computer Science and Engineering, JNTU Hyderabad, 2021 (8.1 CGPA)
+
+CERTIFICATIONS
+AWS Certified Developer - Associate (2023)
+
+SKILLS
+Java, Spring Boot, Python, FastAPI, Django, Microservices, REST, Kafka, Redis, PostgreSQL, MySQL, AWS, Docker,
+Kubernetes, LangChain, LLM, RAG, Git, CI/CD, React (basic), MongoDB, Terraform
+
+=== RESUME 2: Demo_Candidate_GenAI.pdf ===
+DEMO CANDIDATE - GenAI Engineer
+Experience: Software Engineer II, Finlytics Technologies (Feb 2024 - Present); Software Engineer, CloudNest (Apr 2022 - Dec 2023)
+- Built an agentic document-extraction pipeline with tool calling and structured outputs; 92% field accuracy on 10k invoices.
+- Evaluated retrieval quality with a 300-question eval set; improved answer accuracy from 71% to 88%.
+Skills: Python, LLM, RAG, LangChain, LangGraph, Vector databases, Prompt engineering, FastAPI, PyTorch (coursework)

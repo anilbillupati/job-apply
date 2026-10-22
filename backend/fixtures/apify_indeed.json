@@ -1,0 +1,473 @@
+[
+ {
+  "key": "81e74ef5e8e25d94",
+  "url": "https://in.indeed.com/viewjob?jk=81e74ef5e8e25d94",
+  "jobUrl": "https://careers.swiggy.com/jobs/81e74ef5",
+  "title": "Backend Developer - Java",
+  "employer": {
+   "name": "Swiggy"
+  },
+  "location": {
+   "city": "Bengaluru",
+   "admin1Code": "KA",
+   "admin3Code": "BLR",
+   "countryCode": "IN"
+  },
+  "_days_ago": 2,
+  "expired": false,
+  "isRepost": false,
+  "isPlacement": false,
+  "description": {
+   "text": "About Swiggy\nSwiggy builds products in food delivery and quick commerce. We are hiring a Backend Developer - Java to join our engineering team in Bengaluru.\n\nWhat you will do\n- Design, build and own Java services that handle high request volumes with low latency.\n- Write clean, well-tested code and take part in code reviews and design discussions.\n- Build and maintain REST APIs and integrations with internal and partner systems.\n- Work with product managers and other engineers to ship features end to end.\n- Improve observability, reliability and performance of production systems.\n- Contribute to Spring Boot-based components and help improve our deployment pipeline.\n\nWhat we are looking for (mandatory)\n- 2-4 years of professional software development experience.\n- Strong hands-on experience with Java, Spring Boot, Redis.\n- Working knowledge of Kafka, MySQL.\n- Bachelor's degree in Computer Science or a related field, or equivalent experience.\n\nGood to have\n- Exposure to Go.\n\nBenefits: health insurance, learning budget, flexible hours."
+  },
+  "employerAttributes": [
+   "Full-time"
+  ],
+  "baseSalary": null,
+  "_city": "Bengaluru",
+  "_demo_status": "active"
+ },
+ {
+  "key": "d3ac94af0f21ddb6",
+  "url": "https://in.indeed.com/viewjob?jk=d3ac94af0f21ddb6",
+  "jobUrl": "https://careers.jpmorgan.com/jobs/d3ac94af",
+  "title": "Software Engineer II - Java Microservices",
+  "employer": {
+   "name": "JPMorgan Chase & Co."
+  },
+  "location": {
+   "city": "Hyderabad",
+   "admin1Code": "TG",
+   "admin3Code": "HYD",
+   "countryCode": "IN"
+  },
+  "_days_ago": 0,
+  "expired": false,
+  "isRepost": false,
+  "isPlacement": false,
+  "description": {
+   "text": "About JPMorgan Chase & Co.\nJPMorgan Chase & Co. builds products in corporate and investment banking. We are hiring a Software Engineer II - Java Microservices to join our engineering team in Hyderabad.\n\nWhat you will do\n- Design, build and own Java services that handle high request volumes with low latency.\n- Write clean, well-tested code and take part in code reviews and design discussions.\n- Build and maintain REST APIs and integrations with internal and partner systems.\n- Work with product managers and other engineers to ship features end to end.\n- Improve observability, reliability and performance of production systems.\n- Contribute to Spring Boot-based components and help improve our deployment pipeline.\n\nWhat we are looking for (mandatory)\n- 3-6 years of professional software development experience.\n- Strong hands-on experience with Java, Spring Boot, Microservices.\n- Working knowledge of REST, AWS.\n- Bachelor's degree in Computer Science or a related field, or equivalent experience.\n\nGood to have\n- Exposure to Terraform.\n\nBenefits: health insurance, learning budget, flexible hours."
+  },
+  "employerAttributes": [
+   "Full-time"
+  ],
+  "baseSalary": null,
+  "_city": "Hyderabad",
+  "_demo_status": "active"
+ },
+ {
+  "key": "1e27a1c08a6a63ec",
+  "url": "https://in.indeed.com/viewjob?jk=1e27a1c08a6a63ec",
+  "jobUrl": "https://careers.sarvam.com/jobs/1e27a1c0",
+  "title": "LLM Engineer",
+  "employer": {
+   "name": "Sarvam AI"
+  },
+  "location": {
+   "city": "Bengaluru",
+   "admin1Code": "KA",
+   "admin3Code": "BLR",
+   "countryCode": "IN"
+  },
+  "_days_ago": 2,
+  "expired": false,
+  "isRepost": false,
+  "isPlacement": false,
+  "description": {
+   "text": "About Sarvam AI\nSarvam AI builds products in Indic-language foundation models. We are hiring a LLM Engineer to join our engineering team in Bengaluru.\n\nWhat you will do\n- Design, build and own Python services that handle high request volumes with low latency.\n- Write clean, well-tested code and take part in code reviews and design discussions.\n- Build and maintain REST APIs and integrations with internal and partner systems.\n- Work with product managers and other engineers to ship features end to end.\n- Improve observability, reliability and performance of production systems.\n- Contribute to LLM-based components and help improve our deployment pipeline.\n\nWhat we are looking for (mandatory)\n- 2-5 years of professional software development experience.\n- Strong hands-on experience with Python, LLM, RAG.\n- Working knowledge of PyTorch, FastAPI.\n- Bachelor's degree in Computer Science or a related field, or equivalent experience.\n\nGood to have\n- Exposure to vLLM.\n\nBenefits: health insurance, learning budget, flexible hours."
+  },
+  "employerAttributes": [
+   "Full-time",
+   "Hybrid work"
+  ],
+  "baseSalary": null,
+  "_city": "Bengaluru",
+  "_demo_status": "active"
+ },
+ {
+  "key": "ae2eb1547f150524",
+  "url": "https://in.indeed.com/viewjob?jk=ae2eb1547f150524",
+  "jobUrl": "https://careers.zoho.com/jobs/ae2eb154",
+  "title": "Java Developer",
+  "employer": {
+   "name": "Zoho Corporation"
+  },
+  "location": {
+   "city": "Chennai",
+   "admin1Code": "TN",
+   "admin3Code": "MAA",
+   "countryCode": "IN"
+  },
+  "_days_ago": 2,
+  "expired": false,
+  "isRepost": false,
+  "isPlacement": false,
+  "description": {
+   "text": "About Zoho Corporation\nZoho Corporation builds products in business software. We are hiring a Java Developer to join our engineering team in Chennai.\n\nWhat you will do\n- Design, build and own Java services that handle high request volumes with low latency.\n- Write clean, well-tested code and take part in code reviews and design discussions.\n- Build and maintain REST APIs and integrations with internal and partner systems.\n- Work with product managers and other engineers to ship features end to end.\n- Improve observability, reliability and performance of production systems.\n- Contribute to SQL-based components and help improve our deployment pipeline.\n\nWhat we are looking for (mandatory)\n- 1-4 years of professional software development experience.\n- Strong hands-on experience with Java, SQL, REST.\n- Working knowledge of JavaScript.\n- Bachelor's degree in Computer Science or a related field, or equivalent experience.\n\nBenefits: health insurance, learning budget, flexible hours."
+  },
+  "employerAttributes": [
+   "Full-time",
+   "Hybrid work"
+  ],
+  "baseSalary": {
+   "min": 1200000,
+   "max": 2200000,
+   "unitOfWork": "YEAR",
+   "currencyCode": "INR"
+  },
+  "_city": "Chennai",
+  "_demo_status": "active"
+ },
+ {
+  "key": "7d2caf82eeeacbe2",
+  "url": "https://in.indeed.com/viewjob?jk=7d2caf82eeeacbe2",
+  "jobUrl": "https://careers.uber.com/jobs/7d2caf82",
+  "title": "Software Engineer II - Backend",
+  "employer": {
+   "name": "Uber"
+  },
+  "location": {
+   "city": "Hyderabad",
+   "admin1Code": "TG",
+   "admin3Code": "HYD",
+   "countryCode": "IN"
+  },
+  "_days_ago": 1,
+  "expired": false,
+  "isRepost": false,
+  "isPlacement": false,
+  "description": {
+   "text": "About Uber\nUber builds products in mobility platform. We are hiring a Software Engineer II - Backend to join our engineering team in Hyderabad.\n\nWhat you will do\n- Design, build and own Java services that handle high request volumes with low latency.\n- Write clean, well-tested code and take part in code reviews and design discussions.\n- Build and maintain REST APIs and integrations with internal and partner systems.\n- Work with product managers and other engineers to ship features end to end.\n- Improve observability, reliability and performance of production systems.\n- Contribute to Go-based components and help improve our deployment pipeline.\n\nWhat we are looking for (mandatory)\n- 3-6 years of professional software development experience.\n- Strong hands-on experience with Java, Go, Distributed Systems.\n- Working knowledge of Kafka.\n- Bachelor's degree in Computer Science or a related field, or equivalent experience.\n\nBenefits: health insurance, learning budget, flexible hours."
+  },
+  "employerAttributes": [
+   "Full-time",
+   "Hybrid work"
+  ],
+  "baseSalary": null,
+  "_city": "Hyderabad",
+  "_demo_status": "active"
+ },
+ {
+  "key": "93f448b3a5aa3c81",
+  "url": "https://in.indeed.com/viewjob?jk=93f448b3a5aa3c81",
+  "jobUrl": "https://in.indeed.com/applystart?jk=93f448b3a5aa3c81",
+  "title": "Java Developer - Spring Boot",
+  "employer": {
+   "name": "Infosys"
+  },
+  "location": {
+   "city": "Hyderabad",
+   "admin1Code": "TG",
+   "admin3Code": "HYD",
+   "countryCode": "IN"
+  },
+  "_days_ago": 3,
+  "expired": false,
+  "isRepost": false,
+  "isPlacement": false,
+  "description": {
+   "text": "About Infosys\nInfosys builds products in IT services for a banking client. We are hiring a Java Developer - Spring Boot to join our engineering team in Hyderabad.\n\nWhat you will do\n- Design, build and own Java services that handle high request volumes with low latency.\n- Write clean, well-tested code and take part in code reviews and design discussions.\n- Build and maintain REST APIs and integrations with internal and partner systems.\n- Work with product managers and other engineers to ship features end to end.\n- Improve observability, reliability and performance of production systems.\n- Contribute to Spring Boot-based components and help improve our deployment pipeline.\n\nWhat we are looking for (mandatory)\n- 3-6 years of professional software development experience.\n- Strong hands-on experience with Java, Spring Boot, Microservices.\n- Working knowledge of SQL.\n- Bachelor's degree in Computer Science or a related field, or equivalent experience.\n\nBenefits: health insurance, learning budget, flexible hours."
+  },
+  "employerAttributes": [
+   "Full-time",
+   "Hybrid work"
+  ],
+  "baseSalary": {
+   "min": 1200000,
+   "max": 2200000,
+   "unitOfWork": "YEAR",
+   "currencyCode": "INR"
+  },
+  "_city": "Hyderabad",
+  "_demo_status": "uncertain"
+ },
+ {
+  "key": "2b0537e65affb229",
+  "url": "https://in.indeed.com/viewjob?jk=2b0537e65affb229",
+  "jobUrl": "https://careers.tata.com/jobs/2b0537e6",
+  "title": "Python Developer",
+  "employer": {
+   "name": "Tata Consultancy Services"
+  },
+  "location": {
+   "city": "Chennai",
+   "admin1Code": "TN",
+   "admin3Code": "MAA",
+   "countryCode": "IN"
+  },
+  "_days_ago": 5,
+  "expired": false,
+  "isRepost": false,
+  "isPlacement": false,
+  "description": {
+   "text": "About Tata Consultancy Services\nTata Consultancy Services builds products in IT services. We are hiring a Python Developer to join our engineering team in Chennai.\n\nWhat you will do\n- Design, build and own Python services that handle high request volumes with low latency.\n- Write clean, well-tested code and take part in code reviews and design discussions.\n- Build and maintain REST APIs and integrations with internal and partner systems.\n- Work with product managers and other engineers to ship features end to end.\n- Improve observability, reliability and performance of production systems.\n- Contribute to Django-based components and help improve our deployment pipeline.\n\nWhat we are looking for (mandatory)\n- 3-7 years of professional software development experience.\n- Strong hands-on experience with Python, Django, SQL.\n- Working knowledge of AWS.\n- Bachelor's degree in Computer Science or a related field, or equivalent experience.\n\nBenefits: health insurance, learning budget, flexible hours."
+  },
+  "employerAttributes": [
+   "Full-time"
+  ],
+  "baseSalary": {
+   "min": 1200000,
+   "max": 2200000,
+   "unitOfWork": "YEAR",
+   "currencyCode": "INR"
+  },
+  "_city": "Chennai",
+  "_demo_status": "active"
+ },
+ {
+  "key": "bd0561e6211c70cf",
+  "url": "https://in.indeed.com/viewjob?jk=bd0561e6211c70cf",
+  "jobUrl": "https://careers.wells.com/jobs/bd0561e6",
+  "title": "Software Engineer - Python/GenAI",
+  "employer": {
+   "name": "Wells Fargo"
+  },
+  "location": {
+   "city": "Hyderabad",
+   "admin1Code": "TG",
+   "admin3Code": "HYD",
+   "countryCode": "IN"
+  },
+  "_days_ago": 0,
+  "expired": false,
+  "isRepost": false,
+  "isPlacement": false,
+  "description": {
+   "text": "About Wells Fargo\nWells Fargo builds products in consumer banking technology. We are hiring a Software Engineer - Python/GenAI to join our engineering team in Hyderabad.\n\nWhat you will do\n- Design, build and own Python services that handle high request volumes with low latency.\n- Write clean, well-tested code and take part in code reviews and design discussions.\n- Build and maintain REST APIs and integrations with internal and partner systems.\n- Work with product managers and other engineers to ship features end to end.\n- Improve observability, reliability and performance of production systems.\n- Contribute to LLM-based components and help improve our deployment pipeline.\n\nWhat we are looking for (mandatory)\n- 2-5 years of professional software development experience.\n- Strong hands-on experience with Python, LLM, RAG.\n- Working knowledge of SQL, REST.\n- Bachelor's degree in Computer Science or a related field, or equivalent experience.\n\nGood to have\n- Exposure to Azure.\n\nBenefits: health insurance, learning budget, flexible hours."
+  },
+  "employerAttributes": [
+   "Full-time"
+  ],
+  "baseSalary": {
+   "min": 1200000,
+   "max": 2200000,
+   "unitOfWork": "YEAR",
+   "currencyCode": "INR"
+  },
+  "_city": "Hyderabad",
+  "_demo_status": "active"
+ },
+ {
+  "key": "26bb7dbd2d1c9af0",
+  "url": "https://in.indeed.com/viewjob?jk=26bb7dbd2d1c9af0",
+  "jobUrl": "https://careers.chargebee.com/jobs/26bb7dbd",
+  "title": "Software Engineer - Backend",
+  "employer": {
+   "name": "Chargebee"
+  },
+  "location": {
+   "city": "Chennai",
+   "admin1Code": "TN",
+   "admin3Code": "MAA",
+   "countryCode": "IN"
+  },
+  "_days_ago": 1,
+  "expired": false,
+  "isRepost": false,
+  "isPlacement": false,
+  "description": {
+   "text": "About Chargebee\nChargebee builds products in subscription billing SaaS. We are hiring a Software Engineer - Backend to join our engineering team in Chennai.\n\nWhat you will do\n- Design, build and own Java services that handle high request volumes with low latency.\n- Write clean, well-tested code and take part in code reviews and design discussions.\n- Build and maintain REST APIs and integrations with internal and partner systems.\n- Work with product managers and other engineers to ship features end to end.\n- Improve observability, reliability and performance of production systems.\n- Contribute to Spring-based components and help improve our deployment pipeline.\n\nWhat we are looking for (mandatory)\n- 2-4 years of professional software development experience.\n- Strong hands-on experience with Java, Spring, MySQL.\n- Working knowledge of AWS, REST.\n- Bachelor's degree in Computer Science or a related field, or equivalent experience.\n\nBenefits: health insurance, learning budget, flexible hours."
+  },
+  "employerAttributes": [
+   "Full-time"
+  ],
+  "baseSalary": null,
+  "_city": "Chennai",
+  "_demo_status": "active"
+ },
+ {
+  "key": "482c9cbc43435cc5",
+  "url": "https://in.indeed.com/viewjob?jk=482c9cbc43435cc5",
+  "jobUrl": "https://careers.nutanix.com/jobs/482c9cbc",
+  "title": "Member of Technical Staff - Python",
+  "employer": {
+   "name": "Nutanix"
+  },
+  "location": {
+   "city": "Pune",
+   "admin1Code": "MH",
+   "admin3Code": "PNQ",
+   "countryCode": "IN"
+  },
+  "_days_ago": 0,
+  "expired": false,
+  "isRepost": false,
+  "isPlacement": false,
+  "description": {
+   "text": "About Nutanix\nNutanix builds products in hybrid cloud infrastructure. We are hiring a Member of Technical Staff - Python to join our engineering team in Pune.\n\nWhat you will do\n- Design, build and own Python services that handle high request volumes with low latency.\n- Write clean, well-tested code and take part in code reviews and design discussions.\n- Build and maintain REST APIs and integrations with internal and partner systems.\n- Work with product managers and other engineers to ship features end to end.\n- Improve observability, reliability and performance of production systems.\n- Contribute to Linux-based components and help improve our deployment pipeline.\n\nWhat we are looking for (mandatory)\n- 2-5 years of professional software development experience.\n- Strong hands-on experience with Python, Linux, Distributed Systems.\n- Working knowledge of Go.\n- Bachelor's degree in Computer Science or a related field, or equivalent experience.\n\nBenefits: health insurance, learning budget, flexible hours."
+  },
+  "employerAttributes": [
+   "Full-time"
+  ],
+  "baseSalary": null,
+  "_city": "Pune",
+  "_demo_status": "closed"
+ },
+ {
+  "key": "dbf4a8b2b0c4312d",
+  "url": "https://in.indeed.com/viewjob?jk=dbf4a8b2b0c4312d",
+  "jobUrl": "https://careers.fractal.com/jobs/dbf4a8b2",
+  "title": "AI Engineer - LLM Applications",
+  "employer": {
+   "name": "Fractal Analytics"
+  },
+  "location": {
+   "city": "Pune",
+   "admin1Code": "MH",
+   "admin3Code": "PNQ",
+   "countryCode": "IN"
+  },
+  "_days_ago": 3,
+  "expired": false,
+  "isRepost": false,
+  "isPlacement": false,
+  "description": {
+   "text": "About Fractal Analytics\nFractal Analytics builds products in AI and analytics for enterprises. We are hiring a AI Engineer - LLM Applications to join our engineering team in Pune.\n\nWhat you will do\n- Design, build and own Python services that handle high request volumes with low latency.\n- Write clean, well-tested code and take part in code reviews and design discussions.\n- Build and maintain REST APIs and integrations with internal and partner systems.\n- Work with product managers and other engineers to ship features end to end.\n- Improve observability, reliability and performance of production systems.\n- Contribute to LLM-based components and help improve our deployment pipeline.\n\nWhat we are looking for (mandatory)\n- 2-5 years of professional software development experience.\n- Strong hands-on experience with Python, LLM, RAG.\n- Working knowledge of LangChain, Azure.\n- Bachelor's degree in Computer Science or a related field, or equivalent experience.\n\nGood to have\n- Exposure to Docker.\n\nLocation: Remote - US only for this requisition.\n\nBenefits: health insurance, learning budget, flexible hours."
+  },
+  "employerAttributes": [
+   "Full-time"
+  ],
+  "baseSalary": {
+   "min": 1200000,
+   "max": 2200000,
+   "unitOfWork": "YEAR",
+   "currencyCode": "INR"
+  },
+  "_city": "Pune",
+  "_demo_status": "remote_us"
+ },
+ {
+  "key": "f3aed0b6c7ac1491",
+  "url": "https://in.indeed.com/viewjob?jk=f3aed0b6c7ac1491",
+  "jobUrl": "https://careers.highradius.com/jobs/f3aed0b6",
+  "title": "Java Backend Developer",
+  "employer": {
+   "name": "HighRadius"
+  },
+  "location": {
+   "city": "Hyderabad",
+   "admin1Code": "TG",
+   "admin3Code": "HYD",
+   "countryCode": "IN"
+  },
+  "_days_ago": 6,
+  "expired": false,
+  "isRepost": false,
+  "isPlacement": false,
+  "description": {
+   "text": "About HighRadius\nHighRadius builds products in finance automation SaaS. We are hiring a Java Backend Developer to join our engineering team in Hyderabad.\n\nWhat you will do\n- Design, build and own Java services that handle high request volumes with low latency.\n- Write clean, well-tested code and take part in code reviews and design discussions.\n- Build and maintain REST APIs and integrations with internal and partner systems.\n- Work with product managers and other engineers to ship features end to end.\n- Improve observability, reliability and performance of production systems.\n- Contribute to Spring Boot-based components and help improve our deployment pipeline.\n\nWhat we are looking for (mandatory)\n- 2-5 years of professional software development experience.\n- Strong hands-on experience with Java, Spring Boot, SQL.\n- Working knowledge of REST, Kafka.\n- Bachelor's degree in Computer Science or a related field, or equivalent experience.\n\nBenefits: health insurance, learning budget, flexible hours."
+  },
+  "employerAttributes": [
+   "Full-time",
+   "Hybrid work"
+  ],
+  "baseSalary": {
+   "min": 1200000,
+   "max": 2200000,
+   "unitOfWork": "YEAR",
+   "currencyCode": "INR"
+  },
+  "_city": "Hyderabad",
+  "_demo_status": "active"
+ },
+ {
+  "key": "26b94c7f9118bb16",
+  "url": "https://in.indeed.com/viewjob?jk=26b94c7f9118bb16",
+  "jobUrl": "https://careers.saama.com/jobs/26b94c7f",
+  "title": "Backend Developer - Python",
+  "employer": {
+   "name": "Saama Technologies"
+  },
+  "location": {
+   "city": "Chennai",
+   "admin1Code": "TN",
+   "admin3Code": "MAA",
+   "countryCode": "IN"
+  },
+  "_days_ago": 0,
+  "expired": true,
+  "isRepost": false,
+  "isPlacement": false,
+  "description": {
+   "text": "About Saama Technologies\nSaama Technologies builds products in clinical data analytics. We are hiring a Backend Developer - Python to join our engineering team in Chennai.\n\nWhat you will do\n- Design, build and own Python services that handle high request volumes with low latency.\n- Write clean, well-tested code and take part in code reviews and design discussions.\n- Build and maintain REST APIs and integrations with internal and partner systems.\n- Work with product managers and other engineers to ship features end to end.\n- Improve observability, reliability and performance of production systems.\n- Contribute to Flask-based components and help improve our deployment pipeline.\n\nWhat we are looking for (mandatory)\n- 2-4 years of professional software development experience.\n- Strong hands-on experience with Python, Flask, PostgreSQL.\n- Working knowledge of AWS.\n- Bachelor's degree in Computer Science or a related field, or equivalent experience.\n\nBenefits: health insurance, learning budget, flexible hours."
+  },
+  "employerAttributes": [
+   "Full-time"
+  ],
+  "baseSalary": {
+   "min": 1200000,
+   "max": 2200000,
+   "unitOfWork": "YEAR",
+   "currencyCode": "INR"
+  },
+  "_city": "Chennai",
+  "_demo_status": "expired_flag"
+ },
+ {
+  "key": "5d39d0a89a2ef80f",
+  "url": "https://in.indeed.com/viewjob?jk=5d39d0a89a2ef80f",
+  "jobUrl": "https://careers.turing.com/jobs/5d39d0a8",
+  "title": "Remote Java Engineer",
+  "employer": {
+   "name": "Turing"
+  },
+  "location": {
+   "city": null,
+   "admin1Code": "",
+   "admin3Code": "",
+   "countryCode": "IN"
+  },
+  "_days_ago": 2,
+  "expired": false,
+  "isRepost": false,
+  "isPlacement": true,
+  "description": {
+   "text": "About Turing\nTuring builds products in talent marketplace. We are hiring a Remote Java Engineer to join our engineering team (remote, India).\n\nWhat you will do\n- Design, build and own Java services that handle high request volumes with low latency.\n- Write clean, well-tested code and take part in code reviews and design discussions.\n- Build and maintain REST APIs and integrations with internal and partner systems.\n- Work with product managers and other engineers to ship features end to end.\n- Improve observability, reliability and performance of production systems.\n- Contribute to Spring Boot-based components and help improve our deployment pipeline.\n\nWhat we are looking for (mandatory)\n- 3-6 years of professional software development experience.\n- Strong hands-on experience with Java, Spring Boot.\n- Bachelor's degree in Computer Science or a related field, or equivalent experience.\n\nBenefits: health insurance, learning budget, flexible hours."
+  },
+  "employerAttributes": [
+   "Full-time",
+   "Remote"
+  ],
+  "baseSalary": {
+   "min": 1200000,
+   "max": 2200000,
+   "unitOfWork": "YEAR",
+   "currencyCode": "INR"
+  },
+  "_city": "Remote",
+  "_demo_status": "active"
+ },
+ {
+  "key": "e883a1d45de00997",
+  "url": "https://in.indeed.com/viewjob?jk=e883a1d45de00997",
+  "jobUrl": "https://careers.capgemini.com/jobs/e883a1d4",
+  "title": "Java Developer Intern",
+  "employer": {
+   "name": "Capgemini"
+  },
+  "location": {
+   "city": "Chennai",
+   "admin1Code": "TN",
+   "admin3Code": "MAA",
+   "countryCode": "IN"
+  },
+  "_days_ago": 4,
+  "expired": false,
+  "isRepost": false,
+  "isPlacement": false,
+  "description": {
+   "text": "About Capgemini\nCapgemini builds products in IT services. We are hiring a Java Developer Intern to join our engineering team in Chennai.\n\nWhat you will do\n- Design, build and own Java services that handle high request volumes with low latency.\n- Write clean, well-tested code and take part in code reviews and design discussions.\n- Build and maintain REST APIs and integrations with internal and partner systems.\n- Work with product managers and other engineers to ship features end to end.\n- Improve observability, reliability and performance of production systems.\n- Contribute to Git-based components and help improve our deployment pipeline.\n\nWhat we are looking for (mandatory)\n- 0-1 years of professional software development experience.\n- Strong hands-on experience with Java.\n- Bachelor's degree in Computer Science or a related field, or equivalent experience.\n\nBenefits: health insurance, learning budget, flexible hours."
+  },
+  "employerAttributes": [
+   "Full-time"
+  ],
+  "baseSalary": {
+   "min": 1200000,
+   "max": 2200000,
+   "unitOfWork": "YEAR",
+   "currencyCode": "INR"
+  },
+  "_city": "Chennai",
+  "_demo_status": "active"
+ }
+]

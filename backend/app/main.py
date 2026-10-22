@@ -1,31 +1,41 @@
+import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
-from app import models  # noqa: F401  (registers tables on Base.metadata)
-from app.api.v1.router import api_router
-from app.core.config import get_settings
-from app.core.database import Base, engine
+from app.api.routes import router
+from app.config import get_settings
+from app.logging_setup import redact, setup_logging
+from app.migrate import upgrade_db
+from app.worker import resume_interrupted
 
-settings = get_settings()
+log = logging.getLogger("api")
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
-    # Swap for Alembic migrations once the schema starts evolving.
-    Base.metadata.create_all(bind=engine)
+async def lifespan(app: FastAPI):
+    setup_logging()
+    upgrade_db()
+    if not get_settings().redis_url:
+        await resume_interrupted()  # with Redis, the arq worker owns resumption
     yield
 
 
-app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
-
+app = FastAPI(title="JobRadar", version="1.0.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
-    allow_credentials=True,
+    allow_origins=get_settings().cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.include_router(api_router, prefix=settings.api_v1_prefix)
+
+@app.exception_handler(Exception)
+async def unhandled(request: Request, exc: Exception):
+    log.exception("unhandled error")
+    return JSONResponse(status_code=500, content={"detail": redact(f"{type(exc).__name__}: {exc}")})
+
+
+app.include_router(router)

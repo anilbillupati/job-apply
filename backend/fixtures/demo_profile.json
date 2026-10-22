@@ -1,0 +1,29 @@
+{
+  "total_years_experience": 3.5,
+  "current_title": "Software Engineer II",
+  "employers": [
+    {"name": "Finlytics Technologies Pvt Ltd", "title": "Software Engineer II", "start": "Jan 2024", "end": "Present"},
+    {"name": "CloudNest Solutions", "title": "Software Engineer", "start": "Apr 2022", "end": "Dec 2023"}
+  ],
+  "education": ["B.Tech, Computer Science and Engineering, JNTU Hyderabad, 2021 (8.1 CGPA)"],
+  "certifications": ["AWS Certified Developer - Associate (2023)"],
+  "skills_professional": [
+    "Java", "Spring Boot", "Python", "FastAPI", "Django", "Microservices", "REST", "Kafka", "Redis", "PostgreSQL",
+    "AWS", "Docker", "Kubernetes", "LangChain", "LLM", "RAG", "CI/CD", "JUnit", "pytest"
+  ],
+  "skills_listed_only": ["MySQL", "React", "MongoDB", "Terraform", "LangGraph", "PyTorch", "Git"],
+  "measurable_achievements": [
+    "Built Spring Boot microservices for loan origination handling 2M requests/day on AWS",
+    "Reduced p95 API latency by 60% by introducing Redis caching and query optimisation",
+    "Designed a RAG-based support assistant that deflected 35% of tier-1 tickets",
+    "cutting end-of-day processing time from 4 hours to 50 minutes",
+    "raising coverage from 45% to 82%",
+    "92% field accuracy on 10k invoices",
+    "improved answer accuracy from 71% to 88%"
+  ],
+  "best_fit_categories": ["Java", "Backend", "Python", "GenAI", "Software Engineer"],
+  "realistic_levels": ["SDE II", "Software Engineer II"],
+  "gaps": ["No production Go experience", "PyTorch only from coursework", "Limited frontend (React basic)"],
+  "inconsistencies": ["Finlytics start date is Jan 2024 in the Java resume but Feb 2024 in the GenAI resume"],
+  "source": "demo-fixture"
+}
