@@ -216,6 +216,11 @@ class ApifyKey(Base):
     last_error: Mapped[str | None] = mapped_column(Text)
     last_used_on: Mapped[date | None] = mapped_column(Date)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    # Snapshot from the last connection test (GET /users/me and /users/me/limits)
+    account: Mapped[str | None] = mapped_column(String(200))
+    monthly_usage_usd: Mapped[float | None] = mapped_column(Float)
+    monthly_limit_usd: Mapped[float | None] = mapped_column(Float)
+    usage_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class ApifyKeyDay(Base):

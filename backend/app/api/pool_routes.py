@@ -8,7 +8,6 @@ from pydantic import BaseModel, Field
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
-from app.apify.client import ApifyClient, ApifyError, summarize_limits
 from app.db import get_db
 from app.llm.client import make_client
 from app.logging_setup import redact
@@ -78,28 +77,21 @@ def delete_key(key_id: int, db: Session = Depends(get_db)):
     return {"ok": True}
 
 
-async def _check(key: keys.ResolvedKey) -> dict:
-    try:
-        async with ApifyClient(key.token) as client:
-            me = await client.me()
-            limits = summarize_limits(await client.limits())
-    except ApifyError as exc:
-        return {"connected": False, "error": redact(exc)}
-    except Exception as exc:  # noqa: BLE001 - network failures
-        return {"connected": False, "error": redact(f"{type(exc).__name__}: {exc}")}
-    plan = me.get("plan") or {}
-    return {"connected": True, "username": me.get("username"),
-            "plan": plan.get("id") if isinstance(plan, dict) else plan, **limits}
+@router.post("/apify/keys/test-all")
+async def test_all_keys(db: Session = Depends(get_db)):
+    """Test every key in the pool (5 at a time), refresh each key's usage snapshot, and log the results."""
+    return await keys.check_all(db)
 
 
 @router.post("/apify/keys/{key_id}/test")
 async def test_key(key_id: int, db: Session = Depends(get_db)):
     if db.get(ApifyKey, key_id) is None:
         raise HTTPException(404, "key not found")
-    key = keys.token_for(db, key_id)
-    result = await _check(key)
-    keys.log_usage(db, key, "test", detail="ok" if result["connected"] else result.get("error"))
-    return {"key_id": key_id, "label": key.label, "masked": key.masked, **result}
+    try:
+        key = keys.token_for(db, key_id)
+    except keys.KeyPoolError as exc:
+        raise HTTPException(500, str(exc)) from None
+    return await keys.check_key(db, key)
 
 
 @router.get("/apify/keys/today")
@@ -114,7 +106,7 @@ async def todays_key(check: bool = False, db: Session = Depends(get_db)):
     out = {"configured": True, "day": keys.today(), "key_id": key.key_id, "label": key.label, "masked": key.masked,
            "source": "pool" if key.key_id else "env"}
     if check:
-        out |= await _check(key)
+        out |= await keys.check_key(db, key)
     return out
 
 

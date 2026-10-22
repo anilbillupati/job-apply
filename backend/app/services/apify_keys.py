@@ -5,6 +5,7 @@ Rotation: each day the active key that was used least recently is picked and kep
 day and the next key takes over. With an empty pool, APIFY_TOKEN from .env is used as before.
 """
 
+import asyncio
 import csv
 import io
 import logging
@@ -54,13 +55,22 @@ def _env_token() -> str | None:
     return t.get_secret_value() if t and t.get_secret_value() else None
 
 
-def key_out(k: ApifyKey, uses: int = 0, today_id: int | None = None) -> dict:
+def _remaining(k: ApifyKey) -> float | None:
+    if k.monthly_limit_usd is None or k.monthly_usage_usd is None:
+        return None
+    return round(max(k.monthly_limit_usd - k.monthly_usage_usd, 0.0), 4)
+
+
+def key_out(k: ApifyKey, uses: int = 0, today_id: int | None = None, spent: float = 0.0) -> dict:
     d = today()
     return {
         "id": k.id, "label": k.label, "masked": mask(k.last4), "active": k.active,
         "exhausted_today": k.exhausted_on == d, "last_error": k.last_error,
         "last_used_on": k.last_used_on, "created_at": k.created_at, "uses": uses,
         "is_today": k.id == today_id,
+        "account": k.account, "monthly_usage_usd": k.monthly_usage_usd, "monthly_limit_usd": k.monthly_limit_usd,
+        "remaining_usd": _remaining(k), "usage_checked_at": k.usage_checked_at,
+        "spent_by_jobradar_usd": round(spent, 4),
     }
 
 
@@ -271,21 +281,142 @@ async def key_with_credit(db: Session, needed_usd: float, run_id: int | None = N
     return None, None, "no Apify key with enough credit today" if has_pool(db) else "APIFY_TOKEN not configured"
 
 
+def _spent_by_key(db: Session) -> dict[int, float]:
+    from app.models import ScrapeTask  # local import: models imports nothing from here
+
+    rows = db.execute(
+        select(ScrapeTask.apify_key_id, func.coalesce(func.sum(ScrapeTask.cost_usd), 0.0))
+        .where(ScrapeTask.apify_key_id.is_not(None)).group_by(ScrapeTask.apify_key_id)
+    ).all()
+    return {k: float(v or 0) for k, v in rows}
+
+
 def summary(db: Session) -> dict:
     d = today()
     keys = db.scalars(select(ApifyKey).order_by(ApifyKey.id)).all()
     uses = dict(db.execute(
         select(ApifyKeyUsage.key_id, func.count()).where(ApifyKeyUsage.event == "run").group_by(ApifyKeyUsage.key_id)
     ).all())
+    spent = _spent_by_key(db)
     day = db.get(ApifyKeyDay, d)
+    checked = [k for k in keys if k.usage_checked_at is not None]
     return {
         "today": d,
         "timezone": get_settings().key_rotation_tz,
         "today_key_id": day.key_id if day else None,
         "env_fallback": _env_token() is not None,
-        "keys": [key_out(k, uses.get(k.id, 0), day.key_id if day else None) for k in keys],
+        "keys": [key_out(k, uses.get(k.id, 0), day.key_id if day else None, spent.get(k.id, 0.0)) for k in keys],
         "usable_today": len(_usable(db, d)),
+        "totals": {
+            "checked_keys": len(checked),
+            "monthly_usage_usd": round(sum(k.monthly_usage_usd or 0 for k in checked), 4),
+            "monthly_limit_usd": round(sum(k.monthly_limit_usd or 0 for k in checked), 2),
+            "remaining_usd": round(sum(_remaining(k) or 0 for k in checked), 4),
+            "spent_by_jobradar_usd": round(sum(spent.values()), 4),
+            "last_checked_at": max((k.usage_checked_at for k in checked), default=None),
+        },
     }
+
+
+# ------------------------------------------------------------------ connection tests
+
+
+def _usage_text(r: dict) -> str:
+    if not r.get("connected"):
+        return f"FAILED: {r.get('error')}"
+    parts = [f"account {r.get('username')}"]
+    if r.get("plan"):
+        parts.append(f"plan {r['plan']}")
+    if r.get("monthly_limit_usd"):
+        parts.append(f"${r.get('monthly_usage_usd', 0):.2f} used of ${r['monthly_limit_usd']:.2f} this month")
+        if r.get("remaining_usd") is not None:
+            parts.append(f"${r['remaining_usd']:.2f} left")
+    return "OK: " + " · ".join(parts)
+
+
+async def _probe(token: str) -> dict:
+    """GET /users/me + /users/me/limits. No database access, so many can run concurrently."""
+    try:
+        async with ApifyClient(token) as client:
+            me = await client.me()
+            limits = summarize_limits(await client.limits())
+    except ApifyError as exc:
+        return {"connected": False, "error": redact(exc)[:300]}
+    except Exception as exc:  # noqa: BLE001 - network failures
+        return {"connected": False, "error": redact(f"{type(exc).__name__}: {exc}")[:300]}
+    plan = me.get("plan") or {}
+    return {"connected": True, "username": me.get("username"),
+            "plan": plan.get("id") if isinstance(plan, dict) else plan, **limits}
+
+
+def _store(db: Session, key: ResolvedKey, result: dict, log_prefix: str = "") -> dict:
+    """Save the usage snapshot on the key row and log the test."""
+    row = db.get(ApifyKey, key.key_id) if key.key_id is not None else None
+    if row is not None:
+        if result["connected"]:
+            row.account = (result.get("username") or "")[:200] or None
+            row.monthly_usage_usd = result.get("monthly_usage_usd")
+            row.monthly_limit_usd = result.get("monthly_limit_usd") or None
+            if row.exhausted_on != today():
+                row.last_error = None
+        else:
+            row.last_error = result["error"]
+        row.usage_checked_at = datetime.now(UTC)
+        db.commit()
+    result["detail"] = _usage_text(result)
+    log_usage(db, key, "test", detail=log_prefix + result["detail"])
+    return {"key_id": key.key_id, "label": key.label, "masked": key.masked, **result}
+
+
+async def check_key(db: Session, key: ResolvedKey) -> dict:
+    """Test one key, store its usage snapshot and log it."""
+    return _store(db, key, await _probe(key.token))
+
+
+async def check_all(db: Session, concurrency: int = 5) -> dict:
+    """Test every pooled key (active or not), a few at a time."""
+    resolved: list[ResolvedKey] = []
+    results: list[dict] = []
+    for r in db.scalars(select(ApifyKey).order_by(ApifyKey.id)).all():
+        try:
+            resolved.append(_resolved(r))
+        except KeyPoolError as exc:
+            results.append({"key_id": r.id, "label": r.label, "masked": mask(r.last4), "connected": False,
+                            "error": str(exc), "detail": f"FAILED: {exc}"})
+    sem = asyncio.Semaphore(concurrency)
+
+    async def limited(k: ResolvedKey) -> dict:
+        async with sem:
+            return await _probe(k.token)
+
+    probes = await asyncio.gather(*(limited(k) for k in resolved))
+    results = [_store(db, k, pr, "[test all] ") for k, pr in zip(resolved, probes, strict=True)] + results
+    ok = [r for r in results if r["connected"]]
+    return {
+        "tested": len(results),
+        "ok": len(ok),
+        "failed": len(results) - len(ok),
+        "remaining_usd": round(sum(r.get("remaining_usd") or 0 for r in ok), 4),
+        "results": results,
+    }
+
+
+def record_run_spend(db: Session, run_id: int, key_id: int | None, tasks: int, cost: float, items: int) -> None:
+    """Add what a run spent on a key to that key's 'run' entry in the usage log."""
+    row = db.scalar(
+        select(ApifyKeyUsage).where(ApifyKeyUsage.run_id == run_id, ApifyKeyUsage.event == "run",
+                                    ApifyKeyUsage.key_id.is_(key_id) if key_id is None
+                                    else ApifyKeyUsage.key_id == key_id)
+        .order_by(ApifyKeyUsage.id.desc())
+    )
+    text = f"{tasks} Apify runs · {items} items · ${cost:.3f} spent"
+    if row is None:
+        key = db.get(ApifyKey, key_id) if key_id else None
+        db.add(ApifyKeyUsage(key_id=key_id, key_label=key.label if key else ENV_LABEL, day=today(),
+                             at=datetime.now(UTC), event="run", run_id=run_id, detail=text))
+    else:
+        row.detail = text
+    db.commit()
 
 
 def usage(db: Session, limit: int = 200) -> list[dict]:

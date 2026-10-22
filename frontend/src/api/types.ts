@@ -272,6 +272,12 @@ export interface ApifyKey {
   created_at: string;
   uses: number;
   is_today: boolean;
+  account: string | null;
+  monthly_usage_usd: number | null;
+  monthly_limit_usd: number | null;
+  remaining_usd: number | null;
+  usage_checked_at: string | null;
+  spent_by_jobradar_usd: number;
 }
 
 export interface KeyPool {
@@ -281,6 +287,14 @@ export interface KeyPool {
   env_fallback: boolean;
   keys: ApifyKey[];
   usable_today: number;
+  totals: {
+    checked_keys: number;
+    monthly_usage_usd: number;
+    monthly_limit_usd: number;
+    remaining_usd: number;
+    spent_by_jobradar_usd: number;
+    last_checked_at: string | null;
+  };
 }
 
 export interface KeyUsage {
@@ -305,6 +319,15 @@ export interface KeyTest extends ApifyStatus {
   key_id: number;
   label: string;
   masked: string;
+  detail: string;
+}
+
+export interface TestAllResult {
+  tested: number;
+  ok: number;
+  failed: number;
+  remaining_usd: number;
+  results: KeyTest[];
 }
 
 export interface AnthropicKeyStatus {

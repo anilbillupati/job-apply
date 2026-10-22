@@ -1,19 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarCheck, FileUp, KeyRound, Loader2, PlugZap, Plus, Power, Trash2 } from "lucide-react";
+import { CalendarCheck, CheckCircle2, FileUp, KeyRound, ListChecks, Loader2, PlugZap, Plus, Power, Trash2, Wallet, XCircle } from "lucide-react";
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { api } from "@/api/client";
-import type { ApifyKey, KeyTest, KeyUsage } from "@/api/types";
+import type { ApifyKey, KeyTest, KeyUsage, TestAllResult } from "@/api/types";
 import { ErrorNote } from "@/components/common";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/progress";
+import { Progress, Skeleton } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/sheet";
-import { fmtDateTime, usd } from "@/lib/utils";
+import { cn, fmtDateTime, usd } from "@/lib/utils";
 
 const EVENT_LABEL: Record<KeyUsage["event"], string> = {
   daily_pick: "Picked for the day",
@@ -126,6 +126,69 @@ function AddKey() {
   );
 }
 
+function KeyUsageLine({ k }: { k: ApifyKey }) {
+  if (!k.usage_checked_at) {
+    return <div className="mt-1 text-xs text-muted-foreground">Usage not checked yet. Click Test.</div>;
+  }
+  if (k.monthly_limit_usd == null) {
+    return <div className="mt-1 text-xs text-muted-foreground">Last test failed {fmtDateTime(k.usage_checked_at)}</div>;
+  }
+  const used = k.monthly_usage_usd ?? 0;
+  const pct = k.monthly_limit_usd ? (used / k.monthly_limit_usd) * 100 : 0;
+  return (
+    <div className="mt-1.5 max-w-md space-y-1">
+      <Progress
+        value={pct}
+        className="h-1.5"
+        indicatorClassName={pct >= 90 ? "bg-destructive" : pct >= 70 ? "bg-warning" : "bg-success"}
+      />
+      <div className="text-xs text-muted-foreground tabular">
+        {k.account && <span className="text-foreground">{k.account}</span>} · {usd(used)} used of{" "}
+        {usd(k.monthly_limit_usd)} this month · <span className="text-foreground">{usd(k.remaining_usd)} left</span>
+        {k.spent_by_jobradar_usd > 0 && <> · JobRadar spent {usd(k.spent_by_jobradar_usd, 3)}</>} · checked{" "}
+        {fmtDateTime(k.usage_checked_at)}
+      </div>
+    </div>
+  );
+}
+
+function TestAllPanel({ result, onClose }: { result: TestAllResult; onClose: () => void }) {
+  return (
+    <Card>
+      <CardHeader className="flex-row items-start justify-between gap-2 space-y-0 pb-3">
+        <div className="min-w-0">
+          <CardTitle className="text-base">Test results</CardTitle>
+          <CardDescription>
+            {result.ok} of {result.tested} keys working · {usd(result.remaining_usd)} credit left across working keys
+          </CardDescription>
+        </div>
+        <Button size="sm" variant="ghost" onClick={onClose}>
+          Close
+        </Button>
+      </CardHeader>
+      <CardContent>
+        <ul className="space-y-1.5 text-sm">
+          {result.results.map((r) => (
+            <li key={r.key_id} className="flex items-start gap-2">
+              {r.connected ? (
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+              ) : (
+                <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+              )}
+              <span className="min-w-0">
+                <b>{r.label}</b> <span className="font-mono text-xs text-muted-foreground">{r.masked}</span>
+                <span className={cn("block break-words text-xs", r.connected ? "text-muted-foreground" : "text-destructive")}>
+                  {r.detail.replace(/^(OK|FAILED): /, "")}
+                </span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
+  );
+}
+
 function KeyRow({ k, onTest }: { k: ApifyKey; onTest: (r: KeyTest) => void }) {
   const qc = useQueryClient();
   const [confirm, setConfirm] = useState(false);
@@ -162,7 +225,8 @@ function KeyRow({ k, onTest }: { k: ApifyKey; onTest: (r: KeyTest) => void }) {
           <span className="font-mono">{k.masked}</span> · last used {k.last_used_on ?? "never"} · {k.uses} run
           {k.uses === 1 ? "" : "s"}
         </div>
-        {k.exhausted_today && k.last_error && (
+        <KeyUsageLine k={k} />
+        {k.last_error && (k.exhausted_today || !k.monthly_limit_usd) && (
           <div className="mt-1 break-words text-xs text-destructive">{k.last_error}</div>
         )}
       </div>
@@ -203,6 +267,20 @@ export function ApiKeys() {
   const pool = useQuery({ queryKey: ["keys"], queryFn: api.keys });
   const usage = useQuery({ queryKey: ["key-usage"], queryFn: () => api.keyUsage(200) });
   const [tested, setTested] = useState<KeyTest | null>(null);
+  const [allResult, setAllResult] = useState<TestAllResult | null>(null);
+  const qc = useQueryClient();
+  const testAll = useMutation({
+    mutationFn: api.testAllKeys,
+    onSuccess: (r) => {
+      setAllResult(r);
+      setTested(null);
+      qc.invalidateQueries({ queryKey: ["keys"] });
+      qc.invalidateQueries({ queryKey: ["key-usage"] });
+      if (r.failed) toast.warning(`${r.ok} of ${r.tested} keys working, ${r.failed} failed`);
+      else toast.success(`All ${r.tested} keys working`);
+    },
+    onError: (e) => toast.error(e.message),
+  });
 
   if (pool.isLoading) return <Skeleton className="h-96 w-full" />;
   const p = pool.data;
@@ -210,17 +288,23 @@ export function ApiKeys() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Apify API keys</h1>
-        <p className="text-sm text-muted-foreground">
-          One key is used per day ({p?.timezone}), rotating to the least recently used key. If a key is invalid or out of
-          credit, the next one takes over automatically.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl font-semibold tracking-tight">Apify API keys</h1>
+          <p className="text-sm text-muted-foreground">
+            One key is used per day ({p?.timezone}), rotating to the least recently used key. If a key is invalid or out of
+            credit, the next one takes over automatically.
+          </p>
+        </div>
+        <Button onClick={() => testAll.mutate()} disabled={!p?.keys.length || testAll.isPending}>
+          {testAll.isPending ? <Loader2 className="animate-spin" /> : <ListChecks />}
+          {testAll.isPending ? "Testing…" : "Test all keys"}
+        </Button>
       </div>
       <ErrorNote error={pool.error} />
 
       {p && (
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Card className="sm:col-span-2">
             <CardContent className="flex items-start gap-3 pt-4 sm:pt-6">
               <CalendarCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
@@ -251,17 +335,36 @@ export function ApiKeys() {
               </div>
             </CardContent>
           </Card>
+          <Card>
+            <CardContent className="flex items-start gap-3 pt-4 sm:pt-6">
+              <Wallet className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+              <div className="text-sm">
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">Credit left</div>
+                {p.totals.checked_keys ? (
+                  <>
+                    <div className="font-medium tabular">
+                      {usd(p.totals.remaining_usd)} <span className="text-muted-foreground">of {usd(p.totals.monthly_limit_usd)}</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {p.totals.checked_keys} checked · {fmtDateTime(p.totals.last_checked_at)}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-muted-foreground">Run "Test all keys"</div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
+
+      {allResult && <TestAllPanel result={allResult} onClose={() => setAllResult(null)} />}
 
       {tested && (
         <div
           className={`rounded-md border px-3 py-2 text-sm ${tested.connected ? "border-success/40 bg-success/10" : "border-destructive/40 bg-destructive/10 text-destructive"}`}
         >
-          <b>{tested.label}</b>:{" "}
-          {tested.connected
-            ? `connected as ${tested.username}; ${usd(tested.monthly_usage_usd)} used of ${usd(tested.monthly_limit_usd)} this month (${usd(tested.remaining_usd)} left)`
-            : tested.error}
+          <b>{tested.label}</b>: {tested.detail.replace(/^(OK|FAILED): /, "")}
         </div>
       )}
 
@@ -304,7 +407,12 @@ export function ApiKeys() {
                         {EVENT_LABEL[u.event] ?? u.event}
                       </Badge>
                     </td>
-                    <td className="min-w-[12rem] py-2 text-xs text-muted-foreground">
+                    <td
+                      className={cn(
+                        "min-w-[12rem] py-2 text-xs",
+                        u.detail?.includes("FAILED") ? "text-destructive" : "text-muted-foreground",
+                      )}
+                    >
                       {u.run_id && (
                         <Link to={`/runs/${u.run_id}`} className="mr-1 text-primary hover:underline">
                           Run #{u.run_id}

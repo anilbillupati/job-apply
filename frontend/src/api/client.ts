@@ -12,6 +12,7 @@ import type {
   KeyTest,
   KeyUsage,
   Meta,
+  TestAllResult,
   Profile,
   Resume,
   Run,
@@ -94,6 +95,7 @@ export const api = {
     request<ApifyKey>(`/apify/keys/${id}`, json("PATCH", body)),
   deleteKey: (id: number) => request<{ ok: boolean }>(`/apify/keys/${id}`, { method: "DELETE" }),
   testKey: (id: number) => request<KeyTest>(`/apify/keys/${id}/test`, json("POST")),
+  testAllKeys: () => request<TestAllResult>("/apify/keys/test-all", json("POST")),
   keyUsage: (limit = 200) => request<KeyUsage[]>(`/apify/keys/usage?limit=${limit}`),
 
   anthropicKey: () => request<AnthropicKeyStatus>("/settings/anthropic"),

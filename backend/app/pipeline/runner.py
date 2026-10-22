@@ -267,6 +267,8 @@ class RunExecutor:
             await self.gather_all(self._scrape_task(pool, t, sem, existing) for t in tasks)
         finally:
             await pool.aclose()
+        if self.deps.use_key_pool:
+            self._record_key_spend()
         failed = [t for t in all_round if t.status == "failed"]
         if failed and len(failed) == len(all_round):
             raise ApifyError(f"all {len(failed)} scrape tasks failed; first error: {failed[0].error}")
@@ -339,6 +341,16 @@ class RunExecutor:
                 )
                 pl["items"] = sum(t.item_count for t in self.run.tasks if t.platform == task.platform)
                 self.save()
+
+    def _record_key_spend(self) -> None:
+        """Write how many Apify runs, items and dollars this run used on each key into the usage log."""
+        per_key: dict[int | None, list[ScrapeTask]] = {}
+        for t in self.run.tasks:
+            if t.apify_run_id:
+                per_key.setdefault(t.apify_key_id, []).append(t)
+        for key_id, ts in per_key.items():
+            keys.record_run_spend(self.db, self.run_id, key_id, len(ts), sum(t.cost_usd or 0 for t in ts),
+                                  sum(t.item_count or 0 for t in ts))
 
     def _add_cost(self) -> None:
         per: dict = {}
