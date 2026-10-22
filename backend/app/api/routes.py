@@ -24,7 +24,7 @@ from app.resume.analyze import Profile, analyze_resume
 from app.resume.extract import UnsupportedResume, extract_text
 from app.scrapers.keywords import ROLE_CATEGORIES, generate_keywords
 from app.scrapers.platforms import PLATFORMS
-from app.services import app_settings
+from app.services import apify_keys, app_settings
 from app.services.runs import RunError, cancel_run, estimate_specs, expand_run, start_run
 from app.worker import enqueue_run
 
@@ -46,9 +46,9 @@ def health():
 
 
 @router.get("/meta")
-def meta():
+def meta(db: Session = Depends(get_db)):
     return {"roles": ROLE_CATEGORIES, "cities": CITIES, "platforms": PLATFORMS,
-            "llm_configured": llm_available(), "apify_configured": bool(get_settings().apify_token),
+            "llm_configured": llm_available(), "apify_configured": apify_keys.has_any_token(db),
             "max_run_cost_usd": get_settings().max_run_cost_usd}
 
 
@@ -108,12 +108,13 @@ def update_profile(resume_id: int, profile: Profile, db: Session = Depends(get_d
 
 
 @router.get("/settings/apify")
-async def apify_status():
-    token = get_settings().apify_token
-    if not token or not token.get_secret_value():
+async def apify_status(db: Session = Depends(get_db)):
+    """Connection status and credit for today's Apify key (pooled key, or APIFY_TOKEN). Never the token."""
+    key = apify_keys.current_key(db)
+    if key is None:
         return {"configured": False, "connected": False}
     try:
-        async with ApifyClient(token.get_secret_value()) as client:
+        async with ApifyClient(key.token) as client:
             me = await client.me()
             limits = summarize_limits(await client.limits())
     except ApifyError as exc:
@@ -122,7 +123,8 @@ async def apify_status():
         return {"configured": True, "connected": False, "error": redact(f"{type(exc).__name__}: {exc}")}
     plan = me.get("plan") or {}
     return {"configured": True, "connected": True, "username": me.get("username"),
-            "plan": plan.get("id") if isinstance(plan, dict) else plan, **limits}
+            "plan": plan.get("id") if isinstance(plan, dict) else plan, "key_label": key.label,
+            "key_masked": key.masked, **limits}
 
 
 @router.get("/settings")
@@ -174,6 +176,7 @@ class RunIn(BaseModel):
     target_count: int = Field(default=60, ge=1, le=1000)
     min_score: int = Field(default=65, ge=0, le=100)
     keywords: dict[str, list[str]] | None = None
+    exclude_companies: list[str] = Field(default_factory=list, max_length=500)
 
 
 def _validate_run(body: RunIn) -> None:

@@ -1,4 +1,4 @@
-import { History, Monitor, Moon, Plus, Radar, Settings, Sun } from "lucide-react";
+import { History, KeyRound, Monitor, Moon, Plus, Radar, Settings, Sun } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useTheme, type Theme } from "@/hooks/useTheme";
@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 const NAV = [
   { to: "/new", label: "New search", icon: Plus },
   { to: "/runs", label: "Runs", icon: History },
+  { to: "/keys", label: "API keys", icon: KeyRound },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 

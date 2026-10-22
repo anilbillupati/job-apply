@@ -26,8 +26,8 @@ export function Runs() {
       {runs.isLoading && <Skeleton className="h-40 w-full" />}
       {runs.data?.length === 0 && (
         <Card className="p-8 text-center text-sm text-muted-foreground">
-          No runs yet. Start a <Link to="/new" className="text-primary hover:underline">new search</Link>, or load the
-          demo with <code>make seed</code>.
+          No runs yet. Start a <Link to="/new" className="text-primary hover:underline">new search</Link> to find jobs
+          matched to your resume.
         </Card>
       )}
       <ul className="space-y-2">

@@ -59,6 +59,32 @@ TypeScript type-check.
 
 Blank values (`KEY=`) mean "use the default".
 
+## Apify key pool
+
+Open **API keys** in the UI to add keys one by one or import them from an Excel/CSV file. Every cell containing an
+`apify_api_…` token is imported, and another text cell in the same row becomes its label. Keys are encrypted at rest
+(Fernet, see `JOBRADAR_SECRET_KEY` / `SECRET_KEY_FILE`). Only the last four characters are ever shown, and keys can be
+disabled or deleted.
+
+- **One key per day.** The first search of the day picks the active key used least recently and keeps it for the whole
+  day (`KEY_ROTATION_TZ`, default Asia/Kolkata). Thirty keys cover about a month.
+- **Automatic failover.** If the key is invalid (401/403) or out of credit (402 usage limit, or less credit left than
+  the run's estimate), it is marked *failed today* and the next key takes over. Memory and concurrency 402s are retried
+  on the same key.
+- **Usage log.** Every daily pick, run, failover and connection test is logged with the time, key and run.
+- Each Apify run remembers which key started it, because run and dataset IDs belong to that account.
+- `APIFY_TOKEN` in `.env` is only used while the pool is empty.
+
+## Never the same job twice
+
+When a run finishes, the job IDs in its ranked list (plus their cross-listings on other platforms) go into a
+**seen history**, as do jobs you shortlist, apply to or reject. Later searches drop those IDs (filter reason "Already seen
+in an earlier run"). Jobs that were only filtered out or couldn't be verified are not remembered, so they get another
+chance. Settings shows the history and can clear it. The history survives deleting runs.
+
+**Excluded companies:** set a default list in Settings, edit it per search in the wizard, or use *Exclude company* in
+a job's detail panel.
+
 ## How a run works
 
 1. **Resume analysis**: PDF/DOCX text (pypdf, python-docx) goes to Claude with a strict JSON schema. That gives

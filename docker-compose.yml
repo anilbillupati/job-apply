@@ -6,6 +6,7 @@ x-backend: &backend
   environment:
     DATABASE_URL: ${DATABASE_URL:-sqlite:////data/jobradar.db}
     REDIS_URL: redis://redis:6379/0
+    SECRET_KEY_FILE: /data/.secret_key  # encrypts pooled Apify keys; lives on the volume
   volumes:
     - jobradar-data:/data
   restart: unless-stopped

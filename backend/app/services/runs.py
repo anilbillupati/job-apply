@@ -12,6 +12,7 @@ from app.pipeline.estimate import estimate, plan_tasks
 from app.pipeline.runner import empty_progress
 from app.scrapers.keywords import flatten, synonym_keywords
 from app.scrapers.platforms import PRICE_PER_ITEM, TaskSpec
+from app.services import apify_keys as keys
 from app.services import app_settings
 
 log = logging.getLogger("runs")
@@ -28,27 +29,48 @@ class RunError(Exception):
     pass
 
 
-async def remaining_credit() -> tuple[float | None, str | None]:
-    """Remaining monthly Apify credit in USD, or (None, reason) if unknown."""
-    token = get_settings().apify_token
-    if not token or not token.get_secret_value():
-        return None, "APIFY_TOKEN not configured"
+async def remaining_credit(db: Session) -> tuple[keys.ResolvedKey | None, float | None, str | None]:
+    """Today's key and its remaining monthly credit in USD (None if unknown). Never fails over."""
+    key = keys.current_key(db)
+    if key is None:
+        return None, None, "no Apify key configured (add keys on the API keys page or set APIFY_TOKEN)"
     try:
-        async with ApifyClient(token.get_secret_value()) as client:
-            return summarize_limits(await client.limits())["remaining_usd"], None
+        async with ApifyClient(key.token) as client:
+            return key, summarize_limits(await client.limits())["remaining_usd"], None
     except (ApifyError, Exception) as exc:  # noqa: BLE001 - network or auth problems
-        return None, redact(exc)
+        return key, None, redact(exc)
 
 
-async def estimate_specs(db: Session, run: SearchRun, specs: list[TaskSpec], check_credit: bool = True) -> dict:
-    credit, credit_err = (await remaining_credit()) if check_credit else (None, None)
-    est = estimate(
+def _estimate(db: Session, run: SearchRun, specs: list[TaskSpec], credit: float | None) -> dict:
+    return estimate(
         specs, app_settings.llm_model(db), int(app_settings.get_setting(db, "llm_top_n") or 150),
         cap=get_settings().max_run_cost_usd, spent=sum(t.cost_usd or 0 for t in run.tasks),
         remaining_credit=credit,
     )
-    if credit_err:
-        est["credit_check"] = f"Monthly credit not checked: {credit_err}"
+
+
+def _key_note(est: dict, key: keys.ResolvedKey | None, err: str | None) -> dict:
+    if key is not None:
+        est["apify_key"] = {"label": key.label, "masked": key.masked}
+    if err:
+        est["credit_check"] = f"Monthly credit not checked: {err}"
+    return est
+
+
+async def estimate_specs(db: Session, run: SearchRun, specs: list[TaskSpec], check_credit: bool = True) -> dict:
+    """Cost estimate for a preview. Uses today's key's credit but never switches keys."""
+    key, credit, err = (await remaining_credit(db)) if check_credit else (None, None, None)
+    return _key_note(_estimate(db, run, specs, credit), key, err)
+
+
+async def estimate_for_start(db: Session, run: SearchRun, specs: list[TaskSpec]) -> dict:
+    """Estimate before paying: if today's key can't cover the Apify estimate, fail over to the next key."""
+    needed = _estimate(db, run, specs, None)["apify_total_usd"]
+    key, credit, err = await keys.key_with_credit(db, needed, run_id=run.id)
+    est = _key_note(_estimate(db, run, specs, credit), key, err)
+    if key is None:
+        est["ok"] = False
+        est["reasons"] = [*est.get("reasons", []), err or "no usable Apify key"]
     return est
 
 
@@ -69,15 +91,16 @@ def create_tasks(db: Session, run: SearchRun, specs: list[TaskSpec], round_no: i
 async def start_run(db: Session, run: SearchRun) -> dict:
     if run.status not in (RunStatus.DRAFT, RunStatus.FAILED):
         raise RunError(f"run is {run.status}")
-    if not get_settings().apify_token:
-        raise RunError("APIFY_TOKEN is not configured; add it to .env (or load the demo seed instead)")
+    if not keys.has_any_token(db):
+        raise RunError("No Apify key configured: add keys on the API keys page, or set APIFY_TOKEN in .env "
+                       "(or load the demo seed instead)")
     if not run.resume.parsed_profile:
         raise RunError("resume has no parsed profile")
     if run.status == RunStatus.DRAFT:
         specs = plan_tasks(run)
         if not specs:
             raise RunError("nothing to scrape: choose at least one platform, keyword and location")
-        est = await estimate_specs(db, run, specs)
+        est = await estimate_for_start(db, run, specs)
         run.estimate = est
         if not est["ok"]:
             db.commit()
@@ -129,6 +152,8 @@ async def expand_run(db: Session, run: SearchRun, confirm: bool) -> dict:
            "min_score_unchanged": run.min_score}
     if not confirm:
         return out
+    if not demo:
+        est = out["estimate"] = await estimate_for_start(db, run, specs)
     if not est["ok"]:
         raise RunError(" ".join(est["reasons"]))
     if step == "synonyms":
@@ -155,16 +180,15 @@ async def cancel_run(db: Session, run: SearchRun) -> None:
     run.status = RunStatus.CANCELLED if was_draft else RunStatus.CANCELLING
     db.commit()
     running = [t for t in run.tasks if t.apify_run_id and t.status in ("pending", "running")]
-    token = get_settings().apify_token
-    if running and token:
-        try:
-            async with ApifyClient(token.get_secret_value()) as client:
-                for t in running:
-                    try:
-                        await client.abort(t.apify_run_id)
-                        t.status = "aborted"
-                    except ApifyError as exc:
-                        log.warning(redact(f"abort {t.apify_run_id} failed: {exc}"))
-        except ApifyError as exc:
-            log.warning(redact(exc))
+    if running and not (run.estimate or {}).get("demo"):
+        for t in running:  # abort with the key that started each run (IDs are per account)
+            key = keys.token_for(db, t.apify_key_id)
+            if key is None:
+                continue
+            try:
+                async with ApifyClient(key.token) as client:
+                    await client.abort(t.apify_run_id)
+                t.status = "aborted"
+            except ApifyError as exc:
+                log.warning(redact(f"abort {t.apify_run_id} failed: {exc}"))
     db.commit()

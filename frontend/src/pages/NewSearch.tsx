@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, ArrowLeft, ArrowRight, FileText, Loader2, Play, RefreshCw, Upload } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { api } from "@/api/client";
 import type { Estimate, Profile, Run, RunInput } from "@/api/types";
@@ -32,6 +32,7 @@ interface WizardState {
   exclude_linkedin_easy_apply: boolean;
   keywords?: Record<string, string[]>;
   keywordRoles?: string[];
+  exclude_companies?: string[];
   runId?: number;
 }
 
@@ -131,8 +132,11 @@ export function NewSearch() {
         <div className="flex gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
           <span>
-            <b>APIFY_TOKEN</b> is not set, so live searches can't start. You can still explore the demo (
-            <code className="text-xs">make seed</code>) or add the token to <code className="text-xs">.env</code>.
+            No Apify key is configured, so searches can't start yet. Add your keys on the{" "}
+            <Link to="/keys" className="font-medium text-primary hover:underline">
+              API keys
+            </Link>{" "}
+            page.
           </span>
         </div>
       )}
@@ -520,6 +524,11 @@ function StepLocations({ state, update, cities }: StepProps & { cities: string[]
 // ------------------------------------------------------------------ 5. options
 
 function StepOptions({ state, update }: StepProps) {
+  const global = useQuery({ queryKey: ["excluded-companies"], queryFn: api.excludedCompanies });
+  useEffect(() => {
+    if (state.exclude_companies === undefined && global.data) update({ exclude_companies: global.data.companies });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [global.data]);
   return (
     <Card>
       <CardHeader>
@@ -575,6 +584,17 @@ function StepOptions({ state, update }: StepProps) {
             <p className="text-xs text-muted-foreground">Jobs below this are dropped. It is never lowered automatically.</p>
           </div>
         </div>
+        <div className="space-y-1.5">
+          <Label>Exclude companies</Label>
+          <p className="text-xs text-muted-foreground">
+            Jobs from these companies are dropped (name contains the text, case-insensitive). Pre-filled from Settings.
+          </p>
+          <ChipList
+            values={state.exclude_companies ?? []}
+            onChange={(v) => update({ exclude_companies: v })}
+            placeholder="Company name, e.g. Infosys"
+          />
+        </div>
         <label className="flex items-center justify-between gap-4 rounded-md border p-3">
           <span>
             <span className="block text-sm font-medium">Exclude LinkedIn Easy Apply</span>
@@ -605,6 +625,7 @@ function runInput(s: WizardState): RunInput {
     target_count: s.target_count,
     min_score: s.min_score,
     keywords: s.keywords,
+    exclude_companies: s.exclude_companies ?? [],
   };
 }
 
@@ -641,7 +662,7 @@ function StepKeywords({ state, update, onDone }: StepProps & { onDone: () => voi
     },
   });
 
-  const kwKey = JSON.stringify(state.keywords ?? {});
+  const kwKey = JSON.stringify([state.keywords ?? {}, state.exclude_companies ?? []]);
   useEffect(() => {
     if (!state.keywords) return;
     const t = setTimeout(() => estimate.mutate(), 400);

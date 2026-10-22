@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Ban, Bookmark, BookmarkCheck, CheckCheck, ExternalLink, Loader2, Save } from "lucide-react";
+import { Ban, Bookmark, BookmarkCheck, Building2, CheckCheck, ExternalLink, Loader2, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/api/client";
@@ -146,6 +146,15 @@ export function JobDrawer({ jobId, runId, onClose }: { jobId: number | null; run
     },
   });
 
+  const exclude = useMutation({
+    mutationFn: (company: string) => api.excludeCompany(company),
+    onSuccess: (_r, company) => {
+      qc.invalidateQueries({ queryKey: ["excluded-companies"] });
+      toast.success(`${company} will be excluded from future searches`);
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   const setState = (s: NonNullable<JobRow["user_state"]>) =>
     patch.mutate({ user_state: job.data?.user_state === s ? null : s });
 
@@ -197,6 +206,17 @@ export function JobDrawer({ jobId, runId, onClose }: { jobId: number | null; run
                 <Button size="sm" variant={j.user_state === "rejected" ? "secondary" : "outline"} onClick={() => setState("rejected")}>
                   <Ban /> {j.user_state === "rejected" ? "Rejected" : "Reject"}
                 </Button>
+                {j.company && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => exclude.mutate(j.company)}
+                    disabled={exclude.isPending}
+                    title="Skip this company in future searches"
+                  >
+                    <Building2 /> Exclude company
+                  </Button>
+                )}
               </div>
             </div>
 

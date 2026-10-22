@@ -60,6 +60,7 @@ export interface Estimate {
   reasons?: string[];
   demo?: boolean;
   note?: string;
+  apify_key?: { label: string; masked: string };
 }
 
 export interface Counts {
@@ -127,6 +128,7 @@ export interface Run {
   target_count: number;
   min_score: number;
   keywords: Record<string, string[]>;
+  exclude_companies: string[];
   round: number;
   expand_steps: string[];
   status: RunStatus;
@@ -154,6 +156,7 @@ export interface RunInput {
   target_count: number;
   min_score: number;
   keywords?: Record<string, string[]>;
+  exclude_companies?: string[];
 }
 
 export interface JobRow {
@@ -236,6 +239,8 @@ export interface AppSettings {
 export interface ApifyStatus {
   configured: boolean;
   connected: boolean;
+  key_label?: string;
+  key_masked?: string;
   error?: string;
   username?: string;
   plan?: string;
@@ -254,4 +259,57 @@ export interface ExpandPreview {
   estimate: Estimate;
   min_score_unchanged: number;
   started?: boolean;
+}
+
+export interface ApifyKey {
+  id: number;
+  label: string;
+  masked: string;
+  active: boolean;
+  exhausted_today: boolean;
+  last_error: string | null;
+  last_used_on: string | null;
+  created_at: string;
+  uses: number;
+  is_today: boolean;
+}
+
+export interface KeyPool {
+  today: string;
+  timezone: string;
+  today_key_id: number | null;
+  env_fallback: boolean;
+  keys: ApifyKey[];
+  usable_today: number;
+}
+
+export interface KeyUsage {
+  id: number;
+  key_id: number | null;
+  key_label: string;
+  day: string;
+  at: string;
+  event: "daily_pick" | "run" | "failover" | "test";
+  run_id: number | null;
+  detail: string | null;
+}
+
+export interface KeyImportResult {
+  found: number;
+  added: number;
+  duplicates: number;
+  labels: string[];
+}
+
+export interface KeyTest extends ApifyStatus {
+  key_id: number;
+  label: string;
+  masked: string;
+}
+
+export interface SeenJobs {
+  total: number;
+  by_reason: Record<string, number>;
+  recent: { platform: string; platform_job_id: string; title: string; company: string; reason: string;
+    first_run_id: number | null; seen_at: string }[];
 }

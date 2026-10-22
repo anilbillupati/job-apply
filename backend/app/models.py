@@ -11,8 +11,9 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    event,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, Session, attributes, mapped_column, relationship
 
 from app.db import Base
 
@@ -57,6 +58,8 @@ class SearchRun(Base):
     target_count: Mapped[int] = mapped_column(Integer, default=60)
     min_score: Mapped[int] = mapped_column(Integer, default=65)
     keywords: Mapped[dict] = mapped_column(JSON, default=dict)  # {category: [kw, ...]}
+    # Company names (case-insensitive substring) to drop for this run.
+    exclude_companies: Mapped[list] = mapped_column(JSON, default=list)
     # Scrape depth multiplier and expansion bookkeeping (round 1 = initial search).
     round: Mapped[int] = mapped_column(Integer, default=1)
     expand_steps: Mapped[list] = mapped_column(JSON, default=list)
@@ -84,6 +87,8 @@ class ScrapeTask(Base):
     input: Mapped[dict] = mapped_column(JSON)
     # Maps a LinkedIn search URL (or "*") to {"keyword", "location"} so raw items keep their query.
     query_meta: Mapped[dict] = mapped_column(JSON, default=dict)
+    # The pooled Apify key that started this run. Apify run/dataset IDs belong to that account.
+    apify_key_id: Mapped[int | None] = mapped_column(ForeignKey("apify_keys.id", ondelete="SET NULL"))
     memory_mb: Mapped[int] = mapped_column(Integer, default=256)
     max_charge_usd: Mapped[float] = mapped_column(Float, default=0.0)
     est_items: Mapped[int] = mapped_column(Integer, default=0)
@@ -194,3 +199,79 @@ class AppSetting(Base):
 
     key: Mapped[str] = mapped_column(String(80), primary_key=True)
     value: Mapped[dict | list | str | float | int | bool | None] = mapped_column(JSON)
+
+
+class ApifyKey(Base):
+    """A pooled Apify API token. The token is encrypted at rest and never returned by the API."""
+
+    __tablename__ = "apify_keys"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    label: Mapped[str] = mapped_column(String(200))
+    token_enc: Mapped[str] = mapped_column(Text)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)  # sha256, for duplicate detection
+    last4: Mapped[str] = mapped_column(String(8))
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    exhausted_on: Mapped[date | None] = mapped_column(Date)  # skipped for the rest of this day
+    last_error: Mapped[str | None] = mapped_column(Text)
+    last_used_on: Mapped[date | None] = mapped_column(Date)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class ApifyKeyDay(Base):
+    """Which key was picked for each calendar day."""
+
+    __tablename__ = "apify_key_days"
+
+    day: Mapped[date] = mapped_column(Date, primary_key=True)
+    key_id: Mapped[int | None] = mapped_column(ForeignKey("apify_keys.id", ondelete="SET NULL"))
+    picked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class ApifyKeyUsage(Base):
+    """Log of when each key was picked or used (daily pick, run, failover, test)."""
+
+    __tablename__ = "apify_key_usage"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    key_id: Mapped[int | None] = mapped_column(ForeignKey("apify_keys.id", ondelete="SET NULL"), index=True)
+    key_label: Mapped[str] = mapped_column(String(200))  # snapshot, kept after the key is deleted
+    day: Mapped[date] = mapped_column(Date, index=True)
+    at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    event: Mapped[str] = mapped_column(String(20))  # daily_pick | run | failover | test
+    run_id: Mapped[int | None] = mapped_column(Integer)
+    detail: Mapped[str | None] = mapped_column(Text)
+
+
+class SeenJob(Base):
+    """Jobs already shown in a ranked list or marked by the user. Later runs skip them.
+
+    No foreign keys on purpose: the history survives deleting runs."""
+
+    __tablename__ = "seen_jobs"
+
+    platform: Mapped[str] = mapped_column(String(20), primary_key=True)
+    platform_job_id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    title: Mapped[str] = mapped_column(String(500), default="")
+    company: Mapped[str] = mapped_column(String(300), default="")
+    first_run_id: Mapped[int | None] = mapped_column(Integer)
+    reason: Mapped[str] = mapped_column(String(20))  # shown | marked
+    seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+@event.listens_for(Session, "before_flush")
+def _remember_marked_jobs(session: Session, flush_context, instances) -> None:
+    """When a job gets a user state (shortlisted/applied/rejected...), add it to the seen history."""
+    with session.no_autoflush:
+        for obj in list(session.dirty) + list(session.new):
+            if not isinstance(obj, Job) or not obj.user_state or not obj.platform_job_id:
+                continue
+            if not attributes.get_history(obj, "user_state").has_changes():
+                continue
+            key = (obj.platform, obj.platform_job_id)
+            if session.get(SeenJob, key) is None and not any(
+                isinstance(o, SeenJob) and (o.platform, o.platform_job_id) == key for o in session.new
+            ):
+                session.add(SeenJob(platform=obj.platform, platform_job_id=obj.platform_job_id,
+                                    title=(obj.title or "")[:500], company=(obj.company or "")[:300],
+                                    first_run_id=obj.run_id, reason="marked"))

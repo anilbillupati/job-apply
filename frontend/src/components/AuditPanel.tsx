@@ -4,6 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PLATFORM_LABEL, usd } from "@/lib/utils";
 
 const REASON_LABEL: Record<string, string> = {
+  seen_before: "Already seen in an earlier run",
+  excluded_company: "Excluded company",
   location: "Location not in scope",
   work_arrangement: "Work arrangement mismatch",
   agency: "Agency / staffing / marketplace",

@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster } from "sonner";
 import { Layout } from "@/components/Layout";
+import { ApiKeys } from "@/pages/ApiKeys";
 import { NewSearch } from "@/pages/NewSearch";
 import { Results } from "@/pages/Results";
 import { RunProgress } from "@/pages/RunProgress";
@@ -27,6 +28,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="runs/:id" element={<RunProgress />} />
             <Route path="runs/:id/results" element={<Results />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="keys" element={<ApiKeys />} />
             <Route path="*" element={<Navigate to="/runs" replace />} />
           </Route>
         </Routes>

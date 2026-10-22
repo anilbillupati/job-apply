@@ -5,6 +5,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.api.pool_routes import router as pool_router
 from app.api.routes import router
 from app.config import get_settings
 from app.logging_setup import redact, setup_logging
@@ -39,3 +40,4 @@ async def unhandled(request: Request, exc: Exception):
 
 
 app.include_router(router)
+app.include_router(pool_router)

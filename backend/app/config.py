@@ -26,6 +26,11 @@ class Settings(BaseSettings):
     respect_robots_txt: bool = Field(default=True, alias="RESPECT_ROBOTS_TXT")
     # Opt into Anthropic's server-side refusal fallback (beta) for LLM calls.
     llm_fallbacks: bool = Field(default=True, alias="LLM_FALLBACKS")
+    # Encrypts pooled Apify keys at rest. If unset, a key is generated into secret_key_file.
+    secret_key: SecretStr | None = Field(default=None, alias="JOBRADAR_SECRET_KEY")
+    secret_key_file: str = Field(default=str(BACKEND_DIR / ".secret_key"), alias="SECRET_KEY_FILE")
+    # Calendar day boundary for daily Apify key rotation.
+    key_rotation_tz: str = Field(default="Asia/Kolkata", alias="KEY_ROTATION_TZ")
     cors_origins: list[str] = Field(default=["http://localhost:5173"], alias="CORS_ORIGINS")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
 
@@ -40,7 +45,7 @@ class Settings(BaseSettings):
     @property
     def secrets(self) -> list[str]:
         out = []
-        for s in (self.apify_token, self.anthropic_api_key):
+        for s in (self.apify_token, self.anthropic_api_key, self.secret_key):
             if s and s.get_secret_value():
                 out.append(s.get_secret_value())
         return out

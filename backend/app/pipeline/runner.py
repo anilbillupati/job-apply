@@ -7,7 +7,7 @@ import logging
 import random
 from collections import Counter
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
@@ -15,18 +15,18 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
 
-from app.apify.client import ApifyCapacityError, ApifyClient, ApifyError
-from app.config import get_settings
+from app.apify.client import ApifyAuthError, ApifyCapacityError, ApifyClient, ApifyCreditError, ApifyError
 from app.db import SessionLocal
 from app.llm.client import LLMError, llm_available
 from app.llm.scoring import BATCH_SIZE, heuristic_score, score_batch
 from app.logging_setup import log as jlog
 from app.logging_setup import redact
-from app.models import Job, RawJob, RunStatus, Score, ScrapeTask, SearchRun, Verification
+from app.models import Job, RawJob, RunStatus, Score, ScrapeTask, SearchRun, SeenJob, Verification
 from app.pipeline import dedupe as dd
 from app.pipeline import filters as flt
 from app.pipeline.prescore import SkillDict, prescore
 from app.scrapers.platforms import PLATFORMS, item_id, item_query, map_item
+from app.services import apify_keys as keys
 from app.services import app_settings
 from app.verify.verifier import Verifier
 
@@ -50,13 +50,77 @@ class Cancelled(Exception):
 class Deps:
     """Pluggable external services, so the demo seed can run the pipeline on recorded fixtures."""
 
-    apify_factory: Callable[[], Any] = field(
-        default_factory=lambda: lambda: ApifyClient(get_settings().apify_token.get_secret_value()
-                                                    if get_settings().apify_token else "")
-    )
+    apify_factory: Callable[[str], Any] = ApifyClient  # called with a token
     verifier_factory: Callable[[], Any] = Verifier
     use_llm: bool | None = None  # None = use the LLM when an API key is configured
     capacity_backoff: tuple[float, float] = (10.0, 30.0)
+    use_key_pool: bool = True  # False for the offline demo (no real keys involved)
+
+
+DEMO_KEY = keys.ResolvedKey(None, "demo fixtures", "demo")
+
+
+class ApifyPool:
+    """Apify clients for one run: today's pooled key for new runs, failover on auth/credit errors,
+    and the original key for runs that were already started (their IDs belong to that account)."""
+
+    def __init__(self, ex: "RunExecutor"):
+        self.ex = ex
+        self.clients: dict[int | None, Any] = {}
+        self.current: keys.ResolvedKey | None = None
+        self.logged: set[int | None] = set()
+        self.lock = asyncio.Lock()
+
+    def _client(self, key: keys.ResolvedKey):
+        if key.key_id not in self.clients:
+            self.clients[key.key_id] = self.ex.deps.apify_factory(key.token)
+        return self.clients[key.key_id]
+
+    def _log_run(self, key: keys.ResolvedKey) -> None:
+        if key.key_id not in self.logged:
+            self.logged.add(key.key_id)
+            keys.log_usage(self.ex.db, key, "run", run_id=self.ex.run_id)
+            self.ex.event(f"Using Apify key {key.label} ({key.masked})")
+
+    async def current_key(self) -> keys.ResolvedKey:
+        async with self.lock:
+            if self.current is None:
+                if not self.ex.deps.use_key_pool:
+                    self.current = DEMO_KEY
+                else:
+                    self.current = keys.current_key(self.ex.db)
+                    if self.current is None:
+                        raise ApifyError("No Apify key available: add keys on the API keys page or set APIFY_TOKEN")
+                    self._log_run(self.current)
+            return self.current
+
+    async def switch(self, bad: keys.ResolvedKey, reason: str) -> keys.ResolvedKey | None:
+        async with self.lock:
+            if self.current is not None and self.current.key_id != bad.key_id:
+                return self.current  # another task already switched
+            nxt = keys.failover(self.ex.db, bad, reason, self.ex.run_id) if self.ex.deps.use_key_pool else None
+            self.ex.event(f"Apify key {bad.label} failed ({redact(reason)[:160]}); "
+                          + (f"switching to {nxt.label}" if nxt else "no other key available today"))
+            self.current = nxt
+            if nxt:
+                self._log_run(nxt)
+            return nxt
+
+    async def start_client(self):
+        key = await self.current_key()
+        return key, self._client(key)
+
+    def for_task(self, task: ScrapeTask):
+        if not self.ex.deps.use_key_pool:
+            return self._client(DEMO_KEY)
+        key = keys.token_for(self.ex.db, task.apify_key_id)
+        if key is None:
+            raise ApifyError("the Apify key that started this task was deleted, so its results can't be read")
+        return self._client(key)
+
+    async def aclose(self) -> None:
+        for c in self.clients.values():
+            await c.__aexit__(None, None, None)
 
 
 def empty_progress() -> dict:
@@ -170,17 +234,17 @@ class RunExecutor:
         running = [t for t in self.run.tasks if t.apify_run_id and t.status in ("pending", "running")]
         if not running:
             return
+        pool = ApifyPool(self)
         try:
-            async with self.deps.apify_factory() as apify:
-                for t in running:
-                    try:
-                        await apify.abort(t.apify_run_id)
-                        t.status = "aborted"
-                    except ApifyError as exc:
-                        log.warning(redact(f"abort failed for {t.apify_run_id}: {exc}"))
+            for t in running:
+                try:
+                    await pool.for_task(t).abort(t.apify_run_id)
+                    t.status = "aborted"
+                except ApifyError as exc:
+                    log.warning(redact(f"abort failed for {t.apify_run_id}: {exc}"))
             self.db.commit()
-        except ApifyError as exc:
-            log.warning(redact(f"abort skipped: {exc}"))
+        finally:
+            await pool.aclose()
 
     # -------------------------------------------------------------- stage: scrape
 
@@ -198,8 +262,11 @@ class RunExecutor:
             select(RawJob.platform, RawJob.platform_job_id).where(RawJob.run_id == self.run_id)
         ).all())
         sem = asyncio.Semaphore(MAX_CONCURRENT_APIFY)
-        async with self.deps.apify_factory() as apify:
-            await self.gather_all(self._scrape_task(apify, t, sem, existing) for t in tasks)
+        pool = ApifyPool(self)
+        try:
+            await self.gather_all(self._scrape_task(pool, t, sem, existing) for t in tasks)
+        finally:
+            await pool.aclose()
         failed = [t for t in all_round if t.status == "failed"]
         if failed and len(failed) == len(all_round):
             raise ApifyError(f"all {len(failed)} scrape tasks failed; first error: {failed[0].error}")
@@ -207,15 +274,20 @@ class RunExecutor:
             self.set_platform(platform, stage="scraped")
         self.save()
 
-    async def _scrape_task(self, apify, task: ScrapeTask, sem: asyncio.Semaphore, existing: set) -> None:
+    async def _scrape_task(self, pool: ApifyPool, task: ScrapeTask, sem: asyncio.Semaphore, existing: set) -> None:
         async with sem:
             try:
                 if not task.apify_run_id:
                     for attempt in range(MAX_402_RETRIES):
                         self.check_cancel()
+                        key, apify = await pool.start_client()
                         try:
                             data = await apify.start(task.actor_id, task.input, task.memory_mb, task.max_charge_usd)
+                            task.apify_key_id = key.key_id
                             break
+                        except (ApifyAuthError, ApifyCreditError) as exc:
+                            if await pool.switch(key, str(exc)) is None:
+                                raise ApifyError(f"no usable Apify key left today ({exc})") from None
                         except ApifyCapacityError:
                             wait = random.uniform(*self.deps.capacity_backoff)
                             self.event(f"{task.platform}: Apify capacity limit (402), retrying in {wait:.0f}s",
@@ -228,6 +300,7 @@ class RunExecutor:
                     task.status = "running"
                     self.db.commit()
 
+                apify = pool.for_task(task)
                 if task.status == "running":
                     data = await apify.wait(task.apify_run_id, should_stop=self.should_stop)
                     task.dataset_id = data.get("defaultDatasetId") or task.dataset_id
@@ -343,10 +416,23 @@ class RunExecutor:
             agency_blocklist=s("agency_blocklist") or [], title_exclusions=s("title_exclusions") or [],
             seniority_exclusions=s("seniority_exclusions") or [], allow_senior_max_years=s("allow_senior_max_years"),
         )
+        # Jobs shown in an earlier run's ranked list, or marked by the user, are skipped (by platform job ID).
+        seen = {
+            (pl, pid) for pl, pid, first_run in
+            self.db.execute(select(SeenJob.platform, SeenJob.platform_job_id, SeenJob.first_run_id)).all()
+            if first_run != self.run_id
+        }
+        excluded = [c.strip().lower() for c in (self.run.exclude_companies or []) if c.strip()]
         reasons: Counter = Counter()
         per_pass: Counter = Counter()
         for job in self.jobs():
-            job.filter_reason = flt.check(job, cfg)
+            company = (job.company or "").lower()
+            if (job.platform, job.platform_job_id) in seen:
+                job.filter_reason = "seen_before"
+            elif any(x in company for x in excluded):
+                job.filter_reason = "excluded_company"
+            else:
+                job.filter_reason = flt.check(job, cfg)
             if job.filter_reason:
                 reasons[job.filter_reason] += 1
             else:
@@ -573,7 +659,25 @@ class RunExecutor:
             if platform in self.p["platforms"]:
                 self.set_platform(platform, stage="done")
         self.p["target_met"] = n >= self.run.target_count
-        self.event(f"{n} ranked jobs (target {self.run.target_count})")
+        recorded = self._record_seen(final)
+        self.event(f"{n} ranked jobs (target {self.run.target_count}); {recorded} new job IDs added to the "
+                   "seen history so later runs skip them")
+
+    def _record_seen(self, final: list[Job]) -> int:
+        """Remember shown jobs (and their cross-listings on other platforms) by platform job ID."""
+        ids = [j.id for j in final]
+        dup_rows = self.db.scalars(select(Job).where(Job.duplicate_of.in_(ids))).all() if ids else []
+        existing = set(self.db.execute(select(SeenJob.platform, SeenJob.platform_job_id)).all())
+        added = 0
+        for j in [*final, *dup_rows]:
+            if (j.platform, j.platform_job_id) in existing:
+                continue
+            existing.add((j.platform, j.platform_job_id))
+            self.db.add(SeenJob(platform=j.platform, platform_job_id=j.platform_job_id, title=j.title[:500],
+                                company=(j.company or "")[:300], first_run_id=self.run_id, reason="shown"))
+            added += 1
+        self.db.commit()
+        return added
 
 
 def final_jobs_query(db: Session, run: SearchRun) -> list[Job]:
@@ -590,7 +694,7 @@ def final_jobs_query(db: Session, run: SearchRun) -> list[Job]:
 def demo_deps() -> Deps:
     from app.demo import FixtureApify, FixtureVerifier
 
-    return Deps(apify_factory=FixtureApify, verifier_factory=FixtureVerifier, use_llm=False)
+    return Deps(apify_factory=FixtureApify, verifier_factory=FixtureVerifier, use_llm=False, use_key_pool=False)
 
 
 async def execute_run(run_id: int, deps: Deps | None = None) -> None:

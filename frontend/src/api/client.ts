@@ -1,15 +1,21 @@
 import type {
+  ApifyKey,
   ApifyStatus,
   AppSettings,
   ExpandPreview,
   JobDetail,
   JobPage,
   JobRow,
+  KeyImportResult,
+  KeyPool,
+  KeyTest,
+  KeyUsage,
   Meta,
   Profile,
   Resume,
   Run,
   RunInput,
+  SeenJobs,
 } from "./types";
 
 export const API_BASE = "/api";
@@ -75,6 +81,27 @@ export const api = {
   settings: () => request<AppSettings>("/settings"),
   saveSettings: (body: Partial<AppSettings>) => request<AppSettings>("/settings", json("PUT", body)),
   apifyStatus: () => request<ApifyStatus>("/settings/apify"),
+
+  keys: () => request<KeyPool>("/apify/keys"),
+  addKey: (token: string, label: string) => request<ApifyKey>("/apify/keys", json("POST", { token, label: label || null })),
+  importKeys: (file: File) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return request<KeyImportResult>("/apify/keys/import", { method: "POST", body: fd });
+  },
+  updateKey: (id: number, body: { label?: string; active?: boolean }) =>
+    request<ApifyKey>(`/apify/keys/${id}`, json("PATCH", body)),
+  deleteKey: (id: number) => request<{ ok: boolean }>(`/apify/keys/${id}`, { method: "DELETE" }),
+  testKey: (id: number) => request<KeyTest>(`/apify/keys/${id}/test`, json("POST")),
+  keyUsage: (limit = 200) => request<KeyUsage[]>(`/apify/keys/usage?limit=${limit}`),
+
+  seenJobs: () => request<SeenJobs>("/seen-jobs"),
+  clearSeenJobs: () => request<{ ok: boolean; deleted: number }>("/seen-jobs", { method: "DELETE" }),
+  excludedCompanies: () => request<{ companies: string[] }>("/settings/excluded-companies"),
+  setExcludedCompanies: (companies: string[]) =>
+    request<{ companies: string[] }>("/settings/excluded-companies", json("PUT", { companies })),
+  excludeCompany: (company: string) =>
+    request<{ companies: string[] }>("/settings/excluded-companies/add", json("POST", { companies: [company] })),
 
   exportUrl: (runId: number, full = false) => `${API_BASE}/runs/${runId}/export.xlsx?full=${full}`,
   eventsUrl: (runId: number) => `${API_BASE}/runs/${runId}/events`,

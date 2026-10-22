@@ -24,7 +24,7 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 import { api } from "@/api/client";
 import type { JobRow } from "@/api/types";
 import { AuditPanel } from "@/components/AuditPanel";
-import { CategoryBadge, ErrorNote, PlatformBadge, ScoreBadge, VerificationBadge } from "@/components/common";
+import { CategoryBadge, ErrorNote, PlatformBadge, ScoreBadge } from "@/components/common";
 import { ExpandCard } from "@/components/ExpandDialog";
 import { JobDrawer } from "@/components/JobDrawer";
 import { Badge } from "@/components/ui/badge";
@@ -34,29 +34,6 @@ import { Skeleton } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn, fmtDate, PLATFORM_LABEL } from "@/lib/utils";
 import { statusBadge } from "@/pages/RunProgress";
-
-const STATUS_OPTIONS = [
-  ["final", "Ranked (final)"],
-  ["verified_active", "Verified active"],
-  ["uncertain", "Uncertain"],
-  ["inactive", "Closed / inactive"],
-  ["unverified", "Not verified"],
-  ["filtered", "Filtered out"],
-  ["duplicates", "Duplicates"],
-  ["shortlisted", "Shortlisted"],
-  ["applied", "Applied"],
-  ["rejected", "Rejected"],
-  ["all", "All listings"],
-] as const;
-
-const TIERS = [
-  "Tier 1 – Global tech product",
-  "Tier 1 – Global enterprise / bank (India GCC)",
-  "Tier 2 – Established product / SaaS company",
-  "Tier 2 – Funded startup / scale-up",
-  "Tier 3 – Small or early-stage company",
-  "IT services / consulting",
-];
 
 const SORT_PARAM: Record<string, [string, string]> = {
   score: ["score", "-score"],
@@ -87,11 +64,7 @@ export function Results() {
   const runId = Number(useParams().id);
   const [params, setParams] = useSearchParams();
   const tab = params.get("tab") ?? "jobs";
-  const [status, setStatus] = useState("final");
   const [platform, setPlatform] = useState("");
-  const [tier, setTier] = useState("");
-  const [city, setCity] = useState("");
-  const [category, setCategory] = useState("");
   const [minScore, setMinScore] = useState("");
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
@@ -102,9 +75,9 @@ export function Results() {
 
   const run = useQuery({ queryKey: ["run", runId], queryFn: () => api.run(runId) });
   const sort = sorting[0] ? SORT_PARAM[sorting[0].id]?.[sorting[0].desc ? 0 : 1] : "score";
-  const filters = { status, platform, tier, city, category, min_score: minScore, q: dq, sort };
+  const filters = { status: "final", platform, min_score: minScore, q: dq, sort };
 
-  useEffect(() => setPage(1), [status, platform, tier, city, category, minScore, dq, sort]);
+  useEffect(() => setPage(1), [platform, minScore, dq, sort]);
 
   const jobs = useQuery({
     queryKey: ["jobs", runId, filters, page],
@@ -131,16 +104,6 @@ export function Results() {
               <span className="sm:hidden"> · {PLATFORM_LABEL[j.platform]}</span>
               <span className="md:hidden"> · {j.city === "Remote-India" ? "Remote" : j.city}</span>
             </div>
-            {status !== "final" && (
-              <div className="mt-1 flex flex-wrap gap-1">
-                {j.filter_reason && (
-                  <Badge variant="outline" className="font-normal">
-                    {j.filter_reason.replace(/_/g, " ")}
-                  </Badge>
-                )}
-                {j.verification_status && <VerificationBadge status={j.verification_status} easyApply={j.easy_apply} />}
-              </div>
-            )}
           </div>
         ),
       }),
@@ -169,7 +132,7 @@ export function Results() {
       col.accessor("posted_date", { header: "Posted", cell: (c) => <span className="tabular">{fmtDate(c.getValue())}</span> }),
       col.accessor("category", { header: "Category", enableSorting: false, cell: (c) => <CategoryBadge category={c.getValue()} /> }),
     ],
-    [status],
+    [],
   );
 
   const responsive: Record<string, string> = {
@@ -236,8 +199,8 @@ export function Results() {
         </TabsList>
 
         <TabsContent value="jobs" className="space-y-3">
-          <div className="grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-7">
-            <div className="relative col-span-2 xl:col-span-2">
+          <div className="grid grid-cols-[1fr_auto] gap-2 sm:grid-cols-[1fr_12rem_7rem]">
+            <div className="relative col-span-2 sm:col-span-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={q}
@@ -247,13 +210,6 @@ export function Results() {
                 aria-label="Search jobs"
               />
             </div>
-            <Select value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Status">
-              {STATUS_OPTIONS.map(([v, l]) => (
-                <option key={v} value={v}>
-                  {l}
-                </option>
-              ))}
-            </Select>
             <Select value={platform} onChange={(e) => setPlatform(e.target.value)} aria-label="Platform">
               <option value="">All platforms</option>
               {r.platforms.map((p) => (
@@ -262,40 +218,15 @@ export function Results() {
                 </option>
               ))}
             </Select>
-            <Select value={tier} onChange={(e) => setTier(e.target.value)} aria-label="Company tier">
-              <option value="">All tiers</option>
-              {TIERS.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </Select>
-            <Select value={city} onChange={(e) => setCity(e.target.value)} aria-label="City">
-              <option value="">All cities</option>
-              {[...r.locations, ...(r.include_remote_india ? ["Remote-India"] : [])].map((c) => (
-                <option key={c} value={c}>
-                  {c === "Remote-India" ? "Remote (India)" : c}
-                </option>
-              ))}
-            </Select>
-            <div className="col-span-2 flex gap-2 md:col-span-1">
-              <Select value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Category">
-                <option value="">Any category</option>
-                <option value="safe">Safe</option>
-                <option value="strong">Strong</option>
-                <option value="stretch">Stretch</option>
-              </Select>
-              <Input
-                type="number"
-                min={0}
-                max={100}
-                value={minScore}
-                onChange={(e) => setMinScore(e.target.value)}
-                placeholder="Min"
-                aria-label="Minimum score"
-                className="w-20 shrink-0"
-              />
-            </div>
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              value={minScore}
+              onChange={(e) => setMinScore(e.target.value)}
+              placeholder="Min %"
+              aria-label="Minimum score"
+            />
           </div>
 
           <ErrorNote error={jobs.error} />

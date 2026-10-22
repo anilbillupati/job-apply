@@ -49,6 +49,9 @@ class FixtureApify:
 
     _runs: dict[str, tuple[str, list[dict]]] = {}
 
+    def __init__(self, token: str | None = None):
+        self.token = token  # ignored: fixtures never touch Apify
+
     async def __aenter__(self):
         return self
 

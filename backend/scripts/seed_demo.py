@@ -47,7 +47,8 @@ async def seed(use_llm: bool, export: str | None, min_score: int) -> int:
         create_tasks(db, run, plan_tasks(run), 1)
         run_id = run.id
 
-    deps = Deps(apify_factory=FixtureApify, verifier_factory=FixtureVerifier, use_llm=use_llm)
+    deps = Deps(apify_factory=FixtureApify, verifier_factory=FixtureVerifier, use_llm=use_llm,
+                use_key_pool=False)
     await execute_run(run_id, deps)
 
     with SessionLocal() as db:

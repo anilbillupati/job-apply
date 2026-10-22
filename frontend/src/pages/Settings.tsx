@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, Loader2, PlugZap, Save, XCircle } from "lucide-react";
+import { CheckCircle2, History, Loader2, PlugZap, Save, Trash2, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { api } from "@/api/client";
 import type { AppSettings } from "@/api/types";
@@ -11,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input, Select } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress, Skeleton } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/sheet";
 import { fmtDateTime, usd } from "@/lib/utils";
 
 const MODEL_LABEL: Record<string, string> = {
@@ -30,7 +32,13 @@ function ApifyCard() {
       <CardHeader className="flex-row items-start justify-between gap-2 space-y-0">
         <div className="min-w-0">
           <CardTitle className="text-base">Apify connection</CardTitle>
-          <CardDescription>The token is read from .env on the server and is never shown here.</CardDescription>
+          <CardDescription>
+            Tests today's key from the pool (or APIFY_TOKEN). Manage keys on the{" "}
+            <Link to="/keys" className="text-primary hover:underline">
+              API keys
+            </Link>{" "}
+            page. Tokens are never shown.
+          </CardDescription>
         </div>
         <Button variant="outline" size="sm" onClick={() => status.mutate()} disabled={status.isPending}>
           {status.isPending ? <Loader2 className="animate-spin" /> : <PlugZap />} Test
@@ -40,7 +48,7 @@ function ApifyCard() {
         <ErrorNote error={status.error} />
         {s && !s.configured && (
           <p className="flex items-center gap-2">
-            <XCircle className="h-4 w-4 text-destructive" /> APIFY_TOKEN is not set. Add it to <code>.env</code> and restart.
+            <XCircle className="h-4 w-4 text-destructive" /> No Apify key yet. Add keys on the API keys page, or set APIFY_TOKEN in <code>.env</code>.
           </p>
         )}
         {s?.configured && !s.connected && (
@@ -52,6 +60,7 @@ function ApifyCard() {
           <>
             <p className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-success" /> Connected as <b>{s.username}</b>
+              {s.key_label && <span className="text-muted-foreground">using {s.key_label}</span>}
               {s.plan && <Badge variant="outline">{s.plan}</Badge>}
             </p>
             {s.monthly_limit_usd ? (
@@ -70,6 +79,114 @@ function ApifyCard() {
           </>
         )}
       </CardContent>
+    </Card>
+  );
+}
+
+function ExcludedCompaniesCard() {
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ["excluded-companies"], queryFn: api.excludedCompanies });
+  const [list, setList] = useState<string[] | null>(null);
+  useEffect(() => {
+    if (q.data) setList(q.data.companies);
+  }, [q.data]);
+  const save = useMutation({
+    mutationFn: (v: string[]) => api.setExcludedCompanies(v),
+    onSuccess: (d) => {
+      qc.setQueryData(["excluded-companies"], d);
+      toast.success("Excluded companies saved");
+    },
+  });
+  const dirty = list !== null && JSON.stringify(list) !== JSON.stringify(q.data?.companies);
+  return (
+    <Card>
+      <CardHeader className="flex-row items-start justify-between gap-2 space-y-0">
+        <div className="min-w-0">
+          <CardTitle className="text-base">Excluded companies</CardTitle>
+          <CardDescription>
+            Pre-filled into every new search (you can still edit it per search). Matches when the company name contains the
+            text. You can also add a company from a job's detail panel.
+          </CardDescription>
+        </div>
+        <Button size="sm" onClick={() => list && save.mutate(list)} disabled={!dirty || save.isPending}>
+          {save.isPending ? <Loader2 className="animate-spin" /> : <Save />} Save
+        </Button>
+      </CardHeader>
+      <CardContent>
+        <ErrorNote error={save.error ?? q.error} />
+        {list && <ChipList values={list} onChange={setList} placeholder="Company name" />}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SeenJobsCard() {
+  const qc = useQueryClient();
+  const seen = useQuery({ queryKey: ["seen-jobs"], queryFn: api.seenJobs });
+  const [confirm, setConfirm] = useState(false);
+  const clear = useMutation({
+    mutationFn: api.clearSeenJobs,
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["seen-jobs"] });
+      setConfirm(false);
+      toast.success(`Cleared ${r.deleted} job IDs`);
+    },
+  });
+  const d = seen.data;
+  return (
+    <Card>
+      <CardHeader className="flex-row items-start justify-between gap-2 space-y-0">
+        <div className="min-w-0">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <History className="h-4 w-4" /> Already-seen jobs
+          </CardTitle>
+          <CardDescription>
+            Job IDs that were shown in a ranked list or that you shortlisted, applied to or rejected. Later searches skip
+            them, so you never see or apply to the same job twice.
+          </CardDescription>
+        </div>
+        <Button size="sm" variant="outline" onClick={() => setConfirm(true)} disabled={!d?.total}>
+          <Trash2 /> Clear
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm">
+        <ErrorNote error={seen.error} />
+        {d && (
+          <>
+            <p>
+              <b className="tabular">{d.total}</b> job IDs remembered ({d.by_reason.shown ?? 0} shown,{" "}
+              {d.by_reason.marked ?? 0} marked by you).
+            </p>
+            {d.recent.length > 0 && (
+              <ul className="space-y-1 text-xs text-muted-foreground">
+                {d.recent.slice(0, 8).map((r) => (
+                  <li key={r.platform + r.platform_job_id} className="truncate">
+                    <span className="text-foreground">{r.title}</span> · {r.company} · {r.platform} #{r.platform_job_id}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
+      </CardContent>
+      <Dialog open={confirm} onOpenChange={setConfirm}>
+        <DialogContent>
+          <DialogTitle className="text-lg font-semibold">Clear the seen-jobs history?</DialogTitle>
+          <DialogDescription className="text-sm text-muted-foreground">
+            All {d?.total} remembered job IDs are forgotten, so jobs you have already seen or applied to can appear again in
+            future searches. This can't be undone.
+          </DialogDescription>
+          <ErrorNote error={clear.error} />
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setConfirm(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={() => clear.mutate()} disabled={clear.isPending}>
+              {clear.isPending && <Loader2 className="animate-spin" />} Clear history
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
@@ -114,6 +231,10 @@ export function Settings() {
       <ErrorNote error={save.error ?? settings.error} />
 
       <ApifyCard />
+
+      <ExcludedCompaniesCard />
+
+      <SeenJobsCard />
 
       <Card>
         <CardHeader>

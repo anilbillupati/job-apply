@@ -23,7 +23,23 @@ class ApifyCapacityError(ApifyError):
 
 
 class ApifyAuthError(ApifyError):
-    pass
+    """401/403: the token is invalid or revoked. Switch keys."""
+
+
+class ApifyCreditError(ApifyError):
+    """402 for usage/credit reasons (monthly limit reached). Switch keys; waiting won't help."""
+
+
+_CAPACITY_HINTS = ("memory", "concurren", "too many")
+_CREDIT_HINTS = ("usage", "credit", "payment", "plan", "limit-exceeded", "exceed")
+
+
+def _error_info(resp: httpx.Response) -> tuple[str, str]:
+    try:
+        err = (resp.json() or {}).get("error") or {}
+        return str(err.get("type") or ""), str(err.get("message") or "")
+    except ValueError:
+        return "", resp.text[:300]
 
 
 async def request_with_retry(
@@ -72,9 +88,15 @@ class ApifyClient:
 
     def _check(self, resp: httpx.Response, what: str) -> dict:
         if resp.status_code == 402:
-            raise ApifyCapacityError(f"{what}: account limit reached (HTTP 402)")
+            etype, emsg = _error_info(resp)
+            text = f"{etype} {emsg}".lower()
+            detail = redact(f"{what}: HTTP 402 {etype}: {emsg}"[:300])
+            if any(h in text for h in _CAPACITY_HINTS) or not any(h in text for h in _CREDIT_HINTS):
+                raise ApifyCapacityError(detail)
+            raise ApifyCreditError(detail)
         if resp.status_code in (401, 403):
-            raise ApifyAuthError(f"{what}: authentication failed (HTTP {resp.status_code})")
+            etype, emsg = _error_info(resp)
+            raise ApifyAuthError(redact(f"{what}: HTTP {resp.status_code} {etype}: {emsg}"[:300]))
         if resp.status_code >= 400:
             raise ApifyError(redact(f"{what}: HTTP {resp.status_code} {resp.text[:300]}"))
         return resp.json()

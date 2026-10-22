@@ -11,6 +11,8 @@ DEFAULTS: dict = {
         "Turing", "Toptal", "Crossover", "Braintrust", "Andela", "Uplers", "Mercor",
         "Outlier", "Alignerr", "Micro1", "Talent500", "Instahyre", "Hirist", "Flexing It",
     ],
+    # Companies never wanted; pre-filled into each new search's exclusion list.
+    "excluded_companies": [],
     # Employers whose names match the agency regex but who hire directly.
     "agency_allowlist": ["Tata Consultancy Services"],
     # Title terms that make a job irrelevant for the candidate.
