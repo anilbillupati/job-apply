@@ -20,11 +20,43 @@ class AnthropicKeyError(Exception):
     pass
 
 
-def validate(key: str) -> str:
-    key = (key or "").strip()
-    if not KEY_RE.fullmatch(key):
-        raise AnthropicKeyError("That doesn't look like an Anthropic API key (expected sk-ant-…)")
-    return key
+_PASTE_PREFIXES = re.compile(r"^(export\s+)?(ANTHROPIC_API_KEY\s*[=:]\s*|x-api-key\s*:\s*|Bearer\s+)", re.I)
+
+# Other providers' key shapes, so a wrong paste gets a useful message. Only the kind is reported, never the key.
+_OTHER_KEYS = [
+    (re.compile(r"^AIza[0-9A-Za-z_\-]{30,}$"), "a Google (Gemini) API key"),
+    (re.compile(r"^sk-or-"), "an OpenRouter key"),
+    (re.compile(r"^sk-(proj-|svcacct-|admin-)?[A-Za-z0-9_\-]{20,}$"), "an OpenAI key"),
+    (re.compile(r"^apify_api_"), "an Apify token (add it on the API keys page)"),
+    (re.compile(r"^gsk_"), "a Groq key"),
+    (re.compile(r"^hf_"), "a Hugging Face token"),
+]
+
+
+def clean(raw: str) -> str:
+    """Strip whitespace, surrounding quotes and common prefixes picked up when copying from .env or curl."""
+    key = (raw or "").strip()
+    key = _PASTE_PREFIXES.sub("", key).strip().strip("'\"`").strip()
+    return "".join(key.split())  # line breaks or spaces inside a wrapped paste
+
+
+def validate(raw: str) -> str:
+    key = clean(raw)
+    if key.startswith("sk-ant-admin"):
+        raise AnthropicKeyError("This is an Anthropic Admin key; it can't make model calls. Use a regular API key "
+                                "(sk-ant-api…) from console.anthropic.com → API keys.")
+    if KEY_RE.fullmatch(key):
+        return key
+    for pattern, kind in _OTHER_KEYS:
+        if pattern.match(key):
+            raise AnthropicKeyError(f"This looks like {kind}, not an Anthropic key. JobRadar's scoring uses Claude, so "
+                                    "it needs an Anthropic API key (sk-ant-api…) from console.anthropic.com.")
+    if key.startswith("sk-ant-"):
+        raise AnthropicKeyError("This key starts like an Anthropic key but is incomplete or has unexpected "
+                                f"characters ({len(key)} characters; Anthropic keys are usually about 100). "
+                                "Copy it again in full.")
+    raise AnthropicKeyError("That doesn't look like an Anthropic API key. Anthropic keys start with sk-ant- and are "
+                            "created at console.anthropic.com → API keys.")
 
 
 def _stored(db: Session) -> dict | None:
