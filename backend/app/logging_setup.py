@@ -66,8 +66,27 @@ def timed_call(logger: logging.Logger, service: str, op: str, **fields):
     try:
         yield info
     except Exception as exc:
-        log(logger, logging.WARNING, "external_call", service=service, op=op, ok=False,
-            duration_ms=round((time.perf_counter() - start) * 1000), error=redact(exc), **fields, **info)
+        log(
+            logger,
+            logging.WARNING,
+            "external_call",
+            service=service,
+            op=op,
+            ok=False,
+            duration_ms=round((time.perf_counter() - start) * 1000),
+            error=redact(exc),
+            **fields,
+            **info,
+        )
         raise
-    log(logger, logging.INFO, "external_call", service=service, op=op, ok=True,
-        duration_ms=round((time.perf_counter() - start) * 1000), **fields, **info)
+    log(
+        logger,
+        logging.INFO,
+        "external_call",
+        service=service,
+        op=op,
+        ok=True,
+        duration_ms=round((time.perf_counter() - start) * 1000),
+        **fields,
+        **info,
+    )

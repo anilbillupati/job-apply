@@ -775,6 +775,7 @@ export function EstimateTable({ est }: { est: Estimate }) {
         </Badge>
       </div>
       {est.credit_check && <p className="text-xs text-muted-foreground">{est.credit_check}</p>}
+      {est.key_switch && <p className="text-xs text-muted-foreground">{est.key_switch}</p>}
       {est.note && <p className="text-xs text-muted-foreground">{est.note}</p>}
       {est.reasons?.map((r) => (
         <div key={r} className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">

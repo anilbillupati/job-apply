@@ -156,9 +156,7 @@ class Job(Base):
     verification: Mapped["Verification | None"] = relationship(
         back_populates="job", uselist=False, cascade="all, delete-orphan"
     )
-    score: Mapped["Score | None"] = relationship(
-        back_populates="job", uselist=False, cascade="all, delete-orphan"
-    )
+    score: Mapped["Score | None"] = relationship(back_populates="job", uselist=False, cascade="all, delete-orphan")
 
 
 class Verification(Base):
@@ -277,6 +275,13 @@ def _remember_marked_jobs(session: Session, flush_context, instances) -> None:
             if session.get(SeenJob, key) is None and not any(
                 isinstance(o, SeenJob) and (o.platform, o.platform_job_id) == key for o in session.new
             ):
-                session.add(SeenJob(platform=obj.platform, platform_job_id=obj.platform_job_id,
-                                    title=(obj.title or "")[:500], company=(obj.company or "")[:300],
-                                    first_run_id=obj.run_id, reason="marked"))
+                session.add(
+                    SeenJob(
+                        platform=obj.platform,
+                        platform_job_id=obj.platform_job_id,
+                        title=(obj.title or "")[:500],
+                        company=(obj.company or "")[:300],
+                        first_run_id=obj.run_id,
+                        reason="marked",
+                    )
+                )

@@ -64,12 +64,21 @@ def _remaining(k: ApifyKey) -> float | None:
 def key_out(k: ApifyKey, uses: int = 0, today_id: int | None = None, spent: float = 0.0) -> dict:
     d = today()
     return {
-        "id": k.id, "label": k.label, "masked": mask(k.last4), "active": k.active,
-        "exhausted_today": k.exhausted_on == d, "last_error": k.last_error,
-        "last_used_on": k.last_used_on, "created_at": k.created_at, "uses": uses,
+        "id": k.id,
+        "label": k.label,
+        "masked": mask(k.last4),
+        "active": k.active,
+        "exhausted_today": k.exhausted_on == d,
+        "last_error": k.last_error,
+        "last_used_on": k.last_used_on,
+        "created_at": k.created_at,
+        "uses": uses,
         "is_today": k.id == today_id,
-        "account": k.account, "monthly_usage_usd": k.monthly_usage_usd, "monthly_limit_usd": k.monthly_limit_usd,
-        "remaining_usd": _remaining(k), "usage_checked_at": k.usage_checked_at,
+        "account": k.account,
+        "monthly_usage_usd": k.monthly_usage_usd,
+        "monthly_limit_usd": k.monthly_limit_usd,
+        "remaining_usd": _remaining(k),
+        "usage_checked_at": k.usage_checked_at,
         "spent_by_jobradar_usd": round(spent, 4),
     }
 
@@ -90,8 +99,13 @@ def add_key(db: Session, token: str, label: str | None = None) -> ApifyKey:
     if db.scalar(select(ApifyKey.id).where(ApifyKey.token_hash == h)):
         raise KeyPoolError("This key is already in the pool")
     n = (db.scalar(select(func.count(ApifyKey.id))) or 0) + 1
-    key = ApifyKey(label=(label or "").strip()[:200] or f"Key {n}", token_enc=encrypt(token), token_hash=h,
-                   last4=token[-4:], active=True)
+    key = ApifyKey(
+        label=(label or "").strip()[:200] or f"Key {n}",
+        token_enc=encrypt(token),
+        token_hash=h,
+        last4=token[-4:],
+        active=True,
+    )
     db.add(key)
     try:
         db.commit()
@@ -163,12 +177,22 @@ def update_key(db: Session, key_id: int, label: str | None = None, active: bool 
     return key
 
 
-def log_usage(db: Session, key: ResolvedKey | ApifyKey | None, event: str, run_id: int | None = None,
-              detail: str | None = None) -> None:
+def log_usage(
+    db: Session, key: ResolvedKey | ApifyKey | None, event: str, run_id: int | None = None, detail: str | None = None
+) -> None:
     key_id = getattr(key, "key_id", None) if isinstance(key, ResolvedKey) else getattr(key, "id", None)
     label = key.label if key is not None else ENV_LABEL
-    db.add(ApifyKeyUsage(key_id=key_id, key_label=label, day=today(), at=datetime.now(UTC), event=event,
-                         run_id=run_id, detail=redact(detail)[:1000] if detail else None))
+    db.add(
+        ApifyKeyUsage(
+            key_id=key_id,
+            key_label=label,
+            day=today(),
+            at=datetime.now(UTC),
+            event=event,
+            run_id=run_id,
+            detail=redact(detail)[:1000] if detail else None,
+        )
+    )
     db.commit()
 
 
@@ -255,8 +279,9 @@ def token_for(db: Session, key_id: int | None) -> ResolvedKey | None:
     return _resolved(key) if key else None
 
 
-async def key_with_credit(db: Session, needed_usd: float, run_id: int | None = None
-                          ) -> tuple[ResolvedKey | None, float | None, str | None]:
+async def key_with_credit(
+    db: Session, needed_usd: float, run_id: int | None = None
+) -> tuple[ResolvedKey | None, float | None, str | None]:
     """Today's key, failing over while a key's remaining monthly credit is below `needed_usd`.
 
     Returns (key, remaining credit or None if unknown, error note)."""
@@ -281,12 +306,40 @@ async def key_with_credit(db: Session, needed_usd: float, run_id: int | None = N
     return None, None, "no Apify key with enough credit today" if has_pool(db) else "APIFY_TOKEN not configured"
 
 
+async def preview_key_with_credit(
+    db: Session, needed_usd: float
+) -> tuple[ResolvedKey | None, float | None, str | None, bool]:
+    """Read-only version of `key_with_credit` for estimates: finds the key a start would end up on,
+    without marking anything exhausted. Returns (key, remaining credit, error note, switched)."""
+    key = current_key(db)
+    if key is None:
+        return None, None, "no Apify key configured (add keys on the API keys page or set APIFY_TOKEN)", False
+    first = (key, None, None)
+    candidates = [key] + [_resolved(k) for k in _usable(db, today()) if k.id != key.key_id]
+    for i, cand in enumerate(candidates[:40]):
+        try:
+            async with ApifyClient(cand.token) as client:
+                remaining = summarize_limits(await client.limits())["remaining_usd"]
+        except ApifyError as exc:
+            if i == 0:
+                first = (cand, None, redact(exc))
+            continue
+        except Exception as exc:  # noqa: BLE001 - network problems: credit unknown
+            return cand, None, redact(f"{type(exc).__name__}: {exc}"), i > 0
+        if i == 0:
+            first = (cand, remaining, None)
+        if remaining is None or remaining >= needed_usd or cand.key_id is None:
+            return cand, remaining, None, i > 0
+    return (*first, False)  # no key has enough: report today's key so the estimate explains why
+
+
 def _spent_by_key(db: Session) -> dict[int, float]:
     from app.models import ScrapeTask  # local import: models imports nothing from here
 
     rows = db.execute(
         select(ScrapeTask.apify_key_id, func.coalesce(func.sum(ScrapeTask.cost_usd), 0.0))
-        .where(ScrapeTask.apify_key_id.is_not(None)).group_by(ScrapeTask.apify_key_id)
+        .where(ScrapeTask.apify_key_id.is_not(None))
+        .group_by(ScrapeTask.apify_key_id)
     ).all()
     return {k: float(v or 0) for k, v in rows}
 
@@ -294,9 +347,13 @@ def _spent_by_key(db: Session) -> dict[int, float]:
 def summary(db: Session) -> dict:
     d = today()
     keys = db.scalars(select(ApifyKey).order_by(ApifyKey.id)).all()
-    uses = dict(db.execute(
-        select(ApifyKeyUsage.key_id, func.count()).where(ApifyKeyUsage.event == "run").group_by(ApifyKeyUsage.key_id)
-    ).all())
+    uses = dict(
+        db.execute(
+            select(ApifyKeyUsage.key_id, func.count())
+            .where(ApifyKeyUsage.event == "run")
+            .group_by(ApifyKeyUsage.key_id)
+        ).all()
+    )
     spent = _spent_by_key(db)
     day = db.get(ApifyKeyDay, d)
     checked = [k for k in keys if k.usage_checked_at is not None]
@@ -345,8 +402,12 @@ async def _probe(token: str) -> dict:
     except Exception as exc:  # noqa: BLE001 - network failures
         return {"connected": False, "error": redact(f"{type(exc).__name__}: {exc}")[:300]}
     plan = me.get("plan") or {}
-    return {"connected": True, "username": me.get("username"),
-            "plan": plan.get("id") if isinstance(plan, dict) else plan, **limits}
+    return {
+        "connected": True,
+        "username": me.get("username"),
+        "plan": plan.get("id") if isinstance(plan, dict) else plan,
+        **limits,
+    }
 
 
 def _store(db: Session, key: ResolvedKey, result: dict, log_prefix: str = "") -> dict:
@@ -381,8 +442,16 @@ async def check_all(db: Session, concurrency: int = 5) -> dict:
         try:
             resolved.append(_resolved(r))
         except KeyPoolError as exc:
-            results.append({"key_id": r.id, "label": r.label, "masked": mask(r.last4), "connected": False,
-                            "error": str(exc), "detail": f"FAILED: {exc}"})
+            results.append(
+                {
+                    "key_id": r.id,
+                    "label": r.label,
+                    "masked": mask(r.last4),
+                    "connected": False,
+                    "error": str(exc),
+                    "detail": f"FAILED: {exc}",
+                }
+            )
     sem = asyncio.Semaphore(concurrency)
 
     async def limited(k: ResolvedKey) -> dict:
@@ -404,16 +473,28 @@ async def check_all(db: Session, concurrency: int = 5) -> dict:
 def record_run_spend(db: Session, run_id: int, key_id: int | None, tasks: int, cost: float, items: int) -> None:
     """Add what a run spent on a key to that key's 'run' entry in the usage log."""
     row = db.scalar(
-        select(ApifyKeyUsage).where(ApifyKeyUsage.run_id == run_id, ApifyKeyUsage.event == "run",
-                                    ApifyKeyUsage.key_id.is_(key_id) if key_id is None
-                                    else ApifyKeyUsage.key_id == key_id)
+        select(ApifyKeyUsage)
+        .where(
+            ApifyKeyUsage.run_id == run_id,
+            ApifyKeyUsage.event == "run",
+            ApifyKeyUsage.key_id.is_(key_id) if key_id is None else ApifyKeyUsage.key_id == key_id,
+        )
         .order_by(ApifyKeyUsage.id.desc())
     )
     text = f"{tasks} Apify runs · {items} items · ${cost:.3f} spent"
     if row is None:
         key = db.get(ApifyKey, key_id) if key_id else None
-        db.add(ApifyKeyUsage(key_id=key_id, key_label=key.label if key else ENV_LABEL, day=today(),
-                             at=datetime.now(UTC), event="run", run_id=run_id, detail=text))
+        db.add(
+            ApifyKeyUsage(
+                key_id=key_id,
+                key_label=key.label if key else ENV_LABEL,
+                day=today(),
+                at=datetime.now(UTC),
+                event="run",
+                run_id=run_id,
+                detail=text,
+            )
+        )
     else:
         row.detail = text
     db.commit()
@@ -421,5 +502,16 @@ def record_run_spend(db: Session, run_id: int, key_id: int | None, tasks: int, c
 
 def usage(db: Session, limit: int = 200) -> list[dict]:
     rows = db.scalars(select(ApifyKeyUsage).order_by(ApifyKeyUsage.id.desc()).limit(limit)).all()
-    return [{"id": r.id, "key_id": r.key_id, "key_label": r.key_label, "day": r.day, "at": r.at, "event": r.event,
-             "run_id": r.run_id, "detail": r.detail} for r in rows]
+    return [
+        {
+            "id": r.id,
+            "key_id": r.key_id,
+            "key_label": r.key_label,
+            "day": r.day,
+            "at": r.at,
+            "event": r.event,
+            "run_id": r.run_id,
+            "detail": r.detail,
+        }
+        for r in rows
+    ]

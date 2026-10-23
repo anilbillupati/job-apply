@@ -12,7 +12,7 @@ from app.db import get_db
 from app.llm.client import make_client
 from app.logging_setup import redact
 from app.models import ApifyKey, SeenJob
-from app.services import anthropic_key, app_settings
+from app.services import anthropic_key, app_settings, google_key
 from app.services import apify_keys as keys
 
 router = APIRouter()
@@ -103,8 +103,14 @@ async def todays_key(check: bool = False, db: Session = Depends(get_db)):
         raise HTTPException(500, str(exc)) from None
     if key is None:
         return {"configured": False, "day": keys.today()}
-    out = {"configured": True, "day": keys.today(), "key_id": key.key_id, "label": key.label, "masked": key.masked,
-           "source": "pool" if key.key_id else "env"}
+    out = {
+        "configured": True,
+        "day": keys.today(),
+        "key_id": key.key_id,
+        "label": key.label,
+        "masked": key.masked,
+        "source": "pool" if key.key_id else "env",
+    }
     if check:
         out |= await keys.check_key(db, key)
     return out
@@ -126,9 +132,18 @@ def seen_jobs(limit: int = 50, db: Session = Depends(get_db)):
     return {
         "total": total,
         "by_reason": by_reason,
-        "recent": [{"platform": s.platform, "platform_job_id": s.platform_job_id, "title": s.title,
-                    "company": s.company, "reason": s.reason, "first_run_id": s.first_run_id,
-                    "seen_at": s.seen_at} for s in recent],
+        "recent": [
+            {
+                "platform": s.platform,
+                "platform_job_id": s.platform_job_id,
+                "title": s.title,
+                "company": s.company,
+                "reason": s.reason,
+                "first_run_id": s.first_run_id,
+                "seen_at": s.seen_at,
+            }
+            for s in recent
+        ],
     }
 
 
@@ -208,7 +223,7 @@ def anthropic_status(db: Session = Depends(get_db)):
 
 
 class AnthropicKeyIn(BaseModel):
-    api_key: str = Field(min_length=20, max_length=300)
+    api_key: str = Field(min_length=1, max_length=500)
 
 
 @router.put("/settings/anthropic")
@@ -217,11 +232,25 @@ async def save_anthropic_key(body: AnthropicKeyIn, db: Session = Depends(get_db)
         key = anthropic_key.validate(body.api_key)
     except anthropic_key.AnthropicKeyError as exc:
         raise HTTPException(400, str(exc)) from None
+
+    if "demo-mock-key" in key:
+        anthropic_key.save(db, key, datetime.now(UTC).isoformat(timespec="seconds"))
+        return anthropic_key.status(db) | {"warning": "Test key saved (offline heuristic scoring active)."}
+
     check = await _verify_anthropic(key)
-    if check.get("auth_failed"):
-        raise HTTPException(400, check["detail"])
     anthropic_key.save(db, key, datetime.now(UTC).isoformat(timespec="seconds"))
-    warning = None if check["ok"] else f"Saved, but the key could not be verified right now: {check['detail']}"
+    if check.get("auth_failed"):
+        warning = (
+            f"Key saved, but Anthropic reported: {check['detail']}. "
+            "Keyword heuristic scoring will remain active."
+        )
+    elif not check.get("ok"):
+        warning = (
+            f"Key saved, but could not reach Anthropic: {check.get('detail')}. "
+            "Keyword heuristic scoring will remain active."
+        )
+    else:
+        warning = None
     return anthropic_key.status(db) | {"warning": warning}
 
 
@@ -237,3 +266,69 @@ async def test_anthropic_key(db: Session = Depends(get_db)):
     if key is None:
         return {"ok": False, "detail": "No Anthropic API key configured"}
     return await _verify_anthropic(key) | {"source": source}
+
+
+# ------------------------------------------------------------------ Google AI key
+
+
+async def _verify_google(api_key: str) -> dict:
+    """Quick model list check to validate a Google AI Studio key."""
+    try:
+        import google.generativeai as genai
+        import asyncio
+        genai.configure(api_key=api_key)
+        loop = asyncio.get_event_loop()
+        models = await loop.run_in_executor(None, lambda: list(genai.list_models()))
+        flash_models = [
+            m.name.split("/")[-1]
+            for m in models
+            if "generateContent" in getattr(m, "supported_generation_methods", [])
+            and "flash" in m.name
+            and "preview" not in m.name
+        ]
+        shown = flash_models[:3] if flash_models else [m.name.split("/")[-1] for m in models[:3]]
+        return {"ok": True, "detail": f"Key verified — active models: {', '.join(shown)}"}
+    except Exception as exc:
+        msg = str(exc)
+        if "API_KEY_INVALID" in msg or "invalid" in msg.lower() or "403" in msg:
+            return {"ok": False, "auth_failed": True, "detail": "Google rejected this key (invalid or revoked)"}
+        return {"ok": False, "detail": redact(f"{type(exc).__name__}: {exc}")[:300]}
+
+
+@router.get("/settings/google")
+def google_status(db: Session = Depends(get_db)):
+    return google_key.status(db)
+
+
+class GoogleKeyIn(BaseModel):
+    api_key: str = Field(min_length=1, max_length=500)
+
+
+@router.put("/settings/google")
+async def save_google_key(body: GoogleKeyIn, db: Session = Depends(get_db)):
+    try:
+        key = google_key.validate(body.api_key)
+    except google_key.GoogleKeyError as exc:
+        raise HTTPException(400, str(exc)) from None
+
+    check = await _verify_google(key)
+    google_key.save(db, key, datetime.now(UTC).isoformat(timespec="seconds"))
+    if not check.get("ok"):
+        warning = f"Key saved, but verification failed: {check.get('detail')}. Heuristic scoring will remain active."
+    else:
+        warning = None
+    return google_key.status(db) | {"warning": warning}
+
+
+@router.delete("/settings/google")
+def remove_google_key(db: Session = Depends(get_db)):
+    removed = google_key.remove(db)
+    return google_key.status(db) | {"removed": removed}
+
+
+@router.post("/settings/google/test")
+async def test_google_key(db: Session = Depends(get_db)):
+    key, source = google_key.resolve(db)
+    if key is None:
+        return {"ok": False, "detail": "No Google AI Studio key configured"}
+    return await _verify_google(key) | {"source": source}

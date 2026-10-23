@@ -56,6 +56,7 @@ export interface Estimate {
   spent_usd?: number;
   remaining_credit_usd?: number | null;
   credit_check?: string;
+  key_switch?: string;
   ok?: boolean;
   reasons?: string[];
   demo?: boolean;
@@ -230,6 +231,7 @@ export interface AppSettings {
   allow_senior_max_years: number | null;
   llm_model: string;
   llm_top_n: number;
+  naukri_limit?: number;
   allowed_models: string[];
   llm_configured: boolean;
   max_run_cost_usd: number;
@@ -331,6 +333,16 @@ export interface TestAllResult {
 }
 
 export interface AnthropicKeyStatus {
+  configured: boolean;
+  source: "ui" | "env" | null;
+  masked: string | null;
+  saved_at: string | null;
+  env_available: boolean;
+  unreadable: boolean;
+  warning?: string | null;
+}
+
+export interface GoogleKeyStatus {
   configured: boolean;
   source: "ui" | "env" | null;
   masked: string | null;

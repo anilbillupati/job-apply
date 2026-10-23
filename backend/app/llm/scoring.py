@@ -62,8 +62,17 @@ SCORE_SCHEMA = {
                     "notes": {"type": "string"},
                     "category": {"type": "string", "enum": CATEGORIES},
                 },
-                "required": ["job_id", "breakdown", "total", "company_tier", "experience_summary",
-                             "key_skills_match", "why_fits", "notes", "category"],
+                "required": [
+                    "job_id",
+                    "breakdown",
+                    "total",
+                    "company_tier",
+                    "experience_summary",
+                    "key_skills_match",
+                    "why_fits",
+                    "notes",
+                    "category",
+                ],
                 "additionalProperties": False,
             },
         }
@@ -168,12 +177,25 @@ Return one result per job, using the job_id given."""
 
 
 def profile_block(profile: dict) -> str:
-    keys = ["total_years_experience", "current_title", "employers", "education", "certifications",
-            "skills_professional", "skills_listed_only", "measurable_achievements", "best_fit_categories",
-            "realistic_levels", "gaps"]
+    keys = [
+        "total_years_experience",
+        "current_title",
+        "employers",
+        "education",
+        "certifications",
+        "skills_professional",
+        "skills_listed_only",
+        "measurable_achievements",
+        "best_fit_categories",
+        "realistic_levels",
+        "gaps",
+    ]
     data = {k: profile.get(k) for k in keys}
-    return "<candidate_profile>\n" + json.dumps(data, indent=1, sort_keys=True, ensure_ascii=False) + \
-        "\n</candidate_profile>"
+    return (
+        "<candidate_profile>\n"
+        + json.dumps(data, indent=1, sort_keys=True, ensure_ascii=False)
+        + "\n</candidate_profile>"
+    )
 
 
 def job_block(job) -> dict:
@@ -187,8 +209,11 @@ def job_block(job) -> dict:
         "work_mode": job.work_mode,
         "posted_date": job.posted_date.isoformat() if job.posted_date else "Not stated",
         "experience_required": (
-            f"{job.exp_min:g}-{job.exp_max:g} yrs" if job.exp_min is not None and job.exp_max is not None
-            else f"{job.exp_min:g}+ yrs" if job.exp_min is not None else "Not stated"
+            f"{job.exp_min:g}-{job.exp_max:g} yrs"
+            if job.exp_min is not None and job.exp_max is not None
+            else f"{job.exp_min:g}+ yrs"
+            if job.exp_min is not None
+            else "Not stated"
         ),
         "salary": job.salary_text or "Not stated",
         "also_listed_on": [s.get("platform") for s in (job.alt_sources or [])],
@@ -208,8 +233,9 @@ async def score_batch(jobs: list, profile: dict, model: str) -> tuple[list[Score
     last_error: Exception | None = None
     for attempt in range(2):
         try:
-            data, cost = await structured_call(model=model, system=system, user=user, schema=SCORE_SCHEMA,
-                                               op="score_batch", effort="medium")
+            data, cost = await structured_call(
+                model=model, system=system, user=user, schema=SCORE_SCHEMA, op="score_batch", effort="medium"
+            )
             total_cost += cost
             return validate_batch(data, ids), total_cost
         except (ValidationError, ValueError, LLMError) as exc:
@@ -221,6 +247,7 @@ async def score_batch(jobs: list, profile: dict, model: str) -> tuple[list[Score
 
 # ------------------------------------------------------------------ heuristic fallback (no API key)
 
+
 def heuristic_score(job, profile: dict) -> ScoreItem:
     """Deterministic stand-in used when no ANTHROPIC_API_KEY is set (demo mode). Labelled model='heuristic'."""
     d = job.prescore_detail or {}
@@ -231,20 +258,32 @@ def heuristic_score(job, profile: dict) -> ScoreItem:
     role = 15 if d.get("title", 0) >= 25 else 8
     proj = min(15, 6 + len(skills))
     loc = 10 if d.get("location", 0) >= 15 else 8 if d.get("location", 0) else 3
-    bd = {"technical_skills": tech, "experience_seniority": exp, "role_domain": role,
-          "projects_achievements": proj, "location": loc, "education_mandatory": 4, "career_growth": 3}
+    bd = {
+        "technical_skills": tech,
+        "experience_seniority": exp,
+        "role_domain": role,
+        "projects_achievements": proj,
+        "location": loc,
+        "education_mandatory": 4,
+        "career_growth": 3,
+    }
     total = sum(bd.values())
     achievements = profile.get("measurable_achievements") or []
     years = profile.get("total_years_experience") or 0
     exp_req = job_block(job)["experience_required"]
     gaps = d.get("stack_mismatches", [])
     return ScoreItem(
-        job_id=job.id, breakdown=bd, total=total,
+        job_id=job.id,
+        breakdown=bd,
+        total=total,
         company_tier="Tier 3 – Small or early-stage company",
         experience_summary=f"Needs {exp_req}; candidate has {years:g} yrs",
         key_skills_match="; ".join([f"✔ {s}" for s in skills[:8]] + [f"Gap: {g}" for g in gaps[:4]]) or "Not stated",
-        why_fits=(f"Matches {', '.join(skills[:4]) or 'the role'}; relevant achievement: {achievements[0]}"
-                  if achievements else f"Matches {', '.join(skills[:4]) or 'the role'}."),
+        why_fits=(
+            f"Matches {', '.join(skills[:4]) or 'the role'}; relevant achievement: {achievements[0]}"
+            if achievements
+            else f"Matches {', '.join(skills[:4]) or 'the role'}."
+        ),
         notes="Heuristic score (no ANTHROPIC_API_KEY configured); company tier not assessed.",
         category="safe" if total >= 82 else "strong" if total >= 70 else "stretch",
     )

@@ -65,8 +65,9 @@ def notes_text(job) -> str:
     if note and note.lower() not in ("none", "none."):
         parts.append(note)
     if job.alt_sources:
-        alts = "; ".join(f"{PLATFORM_LABEL.get(a['platform'], a['platform'])}: {a.get('url') or 'n/a'}"
-                         for a in job.alt_sources)
+        alts = "; ".join(
+            f"{PLATFORM_LABEL.get(a['platform'], a['platform'])}: {a.get('url') or 'n/a'}" for a in job.alt_sources
+        )
         parts.append(f"Also listed on {alts}")
     if job.applicants_text:
         parts.append(job.applicants_text)
@@ -125,8 +126,9 @@ def write_ranked_sheet(ws: Worksheet, jobs: list) -> None:
     ws.auto_filter.ref = f"A1:{get_column_letter(len(COLUMNS))}{max(len(jobs) + 1, 1)}"
 
 
-def _simple_sheet(wb: Workbook, title: str, columns: list[tuple[str, int]], rows: list[list], pct_col=None,
-                  link_col=None) -> None:
+def _simple_sheet(
+    wb: Workbook, title: str, columns: list[tuple[str, int]], rows: list[list], pct_col=None, link_col=None
+) -> None:
     ws = wb.create_sheet(title)
     _header(ws, columns)
     for r in rows:
@@ -136,12 +138,29 @@ def _simple_sheet(wb: Workbook, title: str, columns: list[tuple[str, int]], rows
 
 
 def _top_rows(jobs: list) -> list[list]:
-    return [[j.score.total / 100, j.title, j.company, PLATFORM_LABEL.get(j.platform, j.platform),
-             j.score.category.title(), j.score.why_fits, application_link(j) or ""] for j in jobs]
+    return [
+        [
+            j.score.total / 100,
+            j.title,
+            j.company,
+            PLATFORM_LABEL.get(j.platform, j.platform),
+            j.score.category.title(),
+            j.score.why_fits,
+            application_link(j) or "",
+        ]
+        for j in jobs
+    ]
 
 
-TOP_COLS = [("Match Score (%)", 12), ("Job Title", 34), ("Company", 26), ("Source Platform", 14),
-            ("Category", 11), ("Why This Fits Me", 60), ("Application Link", 42)]
+TOP_COLS = [
+    ("Match Score (%)", 12),
+    ("Job Title", 34),
+    ("Company", 26),
+    ("Source Platform", 14),
+    ("Category", 11),
+    ("Why This Fits Me", 60),
+    ("Application Link", 42),
+]
 
 
 def build_workbook(jobs: list, full: bool = False, run=None, profile: dict | None = None) -> bytes:
@@ -197,14 +216,19 @@ def build_workbook(jobs: list, full: bool = False, run=None, profile: dict | Non
             audit += [["Collected (raw items)", c.get("collected", 0)], ["Unique listings", c.get("unique", 0)]]
             for reason, n in (c.get("filtered") or {}).items():
                 audit.append([f"Filtered out: {reason}", n])
-            audit += [["Passed filters", c.get("passed_filters", 0)],
-                      ["Duplicates merged", c.get("duplicates_merged", 0)],
-                      ["After dedupe", c.get("after_dedupe", 0)],
-                      ["Pre-score ≥ 60 (verified)", c.get("prescore_ge_60", 0)]]
+            audit += [
+                ["Passed filters", c.get("passed_filters", 0)],
+                ["Duplicates merged", c.get("duplicates_merged", 0)],
+                ["After dedupe", c.get("after_dedupe", 0)],
+                ["Pre-score ≥ 60 (verified)", c.get("prescore_ge_60", 0)],
+            ]
             for k, n in (c.get("verified") or {}).items():
                 audit.append([f"Verification: {k}", n])
-            audit += [["Scored", c.get("scored", 0)], ["Below min score", c.get("below_min_score", 0)],
-                      ["Final ranked", c.get("final", len(jobs))]]
+            audit += [
+                ["Scored", c.get("scored", 0)],
+                ["Below min score", c.get("below_min_score", 0)],
+                ["Final ranked", c.get("final", len(jobs))],
+            ]
             cost = p.get("cost", {})
             for platform, usd in (cost.get("apify") or {}).items():
                 audit.append([f"Apify cost: {PLATFORM_LABEL.get(platform, platform)} (USD)", usd])

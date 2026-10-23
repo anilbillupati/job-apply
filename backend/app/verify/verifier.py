@@ -20,8 +20,7 @@ from app.verify.robots import RobotsCache
 log = logging.getLogger("verify")
 
 DESKTOP_UA = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/128.0.0.0 Safari/537.36"
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
 )
 LINKEDIN_GUEST = "https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/{id}"
 
@@ -72,12 +71,21 @@ class Verifier:
             except httpx.HTTPError as exc:
                 return result(UNCERTAIN, "linkedin_guest_api", url=url, reason=redact(exc))
         if resp.status_code != 200:
-            return result(UNCERTAIN, "linkedin_guest_api", url=url, http_status=resp.status_code,
-                          reason="non-200 response")
+            return result(
+                UNCERTAIN, "linkedin_guest_api", url=url, http_status=resp.status_code, reason="non-200 response"
+            )
         c = classify_linkedin(resp.text)
-        return result(c["status"], "linkedin_guest_api", c.get("easy_apply"), url=url, final_url=str(resp.url),
-                      http_status=resp.status_code, matched=c["matched"],
-                      posted_time_ago=c.get("posted_time_ago"), applicants=c.get("applicants"))
+        return result(
+            c["status"],
+            "linkedin_guest_api",
+            c.get("easy_apply"),
+            url=url,
+            final_url=str(resp.url),
+            http_status=resp.status_code,
+            matched=c["matched"],
+            posted_time_ago=c.get("posted_time_ago"),
+            applicants=c.get("applicants"),
+        )
 
     # -------------------------------------------------------------- Naukri
 
@@ -113,9 +121,16 @@ class Verifier:
                 if ctx:
                     await ctx.close()
         c = classify_naukri_text(text or "")
-        return result(c["status"], "naukri_playwright", url=listing_url, final_url=final_url,
-                      http_status=info.get("status"), matched=c["matched"], reason=c.get("reason"),
-                      posted=c.get("posted"))
+        return result(
+            c["status"],
+            "naukri_playwright",
+            url=listing_url,
+            final_url=final_url,
+            http_status=info.get("status"),
+            matched=c["matched"],
+            reason=c.get("reason"),
+            posted=c.get("posted"),
+        )
 
     # -------------------------------------------------------------- Indeed
 
@@ -134,5 +149,12 @@ class Verifier:
         except httpx.HTTPError as exc:
             return result(UNCERTAIN, "indeed_employer_page", url=employer_url, reason=redact(exc)[:300])
         c = classify_employer_page(resp.text, resp.status_code)
-        return result(c["status"], "indeed_employer_page", url=employer_url, final_url=str(resp.url),
-                      http_status=resp.status_code, matched=c["matched"], reason=c.get("reason"))
+        return result(
+            c["status"],
+            "indeed_employer_page",
+            url=employer_url,
+            final_url=str(resp.url),
+            http_status=resp.status_code,
+            matched=c["matched"],
+            reason=c.get("reason"),
+        )

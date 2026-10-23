@@ -1,5 +1,6 @@
 import asyncio
 import json
+import time
 from datetime import UTC, datetime
 from typing import Literal
 
@@ -16,7 +17,7 @@ from app.db import SessionLocal, get_db
 from app.export.excel import FILENAME, build_workbook
 from app.llm.client import LLMError, llm_available
 from app.logging_setup import redact
-from app.models import Job, Resume, RunStatus, Score, SearchRun, Verification
+from app.models import ApifyKey, Job, Resume, RunStatus, Score, SearchRun, Verification
 from app.pipeline.estimate import plan_tasks
 from app.pipeline.runner import final_jobs_query
 from app.pipeline.text import CITIES
@@ -25,6 +26,7 @@ from app.resume.extract import UnsupportedResume, extract_text
 from app.scrapers.keywords import ROLE_CATEGORIES, generate_keywords
 from app.scrapers.platforms import PLATFORMS
 from app.services import apify_keys, app_settings
+from app.services.excel_import import generate_sample_template, import_jobs_from_excel
 from app.services.runs import RunError, cancel_run, estimate_specs, expand_run, start_run
 from app.worker import enqueue_run
 
@@ -47,9 +49,14 @@ def health():
 
 @router.get("/meta")
 def meta(db: Session = Depends(get_db)):
-    return {"roles": ROLE_CATEGORIES, "cities": CITIES, "platforms": PLATFORMS,
-            "llm_configured": llm_available(), "apify_configured": apify_keys.has_any_token(db),
-            "max_run_cost_usd": get_settings().max_run_cost_usd}
+    return {
+        "roles": ROLE_CATEGORIES,
+        "cities": CITIES,
+        "platforms": PLATFORMS,
+        "llm_configured": llm_available(),
+        "apify_configured": apify_keys.has_any_token(db),
+        "max_run_cost_usd": get_settings().max_run_cost_usd,
+    }
 
 
 # ------------------------------------------------------------------ resumes
@@ -106,32 +113,103 @@ def update_profile(resume_id: int, profile: Profile, db: Session = Depends(get_d
 
 # ------------------------------------------------------------------ settings
 
+_apify_status_cache: dict[str, tuple[float, dict]] = {}
+
 
 @router.get("/settings/apify")
-async def apify_status(db: Session = Depends(get_db)):
-    """Connection status and credit for today's Apify key (pooled key, or APIFY_TOKEN). Never the token."""
+async def apify_status(refresh: bool = False, db: Session = Depends(get_db)):
+    """Connection status and credit for today's Apify key.
+
+    Returns cached snapshot instantly unless ?refresh=true is provided.
+    """
     key = apify_keys.current_key(db)
     if key is None:
         return {"configured": False, "connected": False}
+
+    cache_key = f"{key.key_id}:{key.token[-8:]}"
+    now = time.time()
+
+    # Fast path 1: In-memory cache (5 minute TTL)
+    if not refresh and cache_key in _apify_status_cache:
+        cached_time, cached_payload = _apify_status_cache[cache_key]
+        if now - cached_time < 300:
+            return cached_payload
+
+    # Fast path 2: Database snapshot from previous connection checks
+    if not refresh and key.key_id is not None:
+        db_key = db.get(ApifyKey, key.key_id)
+        if db_key and (db_key.account or db_key.monthly_limit_usd is not None):
+            limit = db_key.monthly_limit_usd or 0.0
+            used = db_key.monthly_usage_usd or 0.0
+            rem = round(max(limit - used, 0.0), 4) if db_key.monthly_limit_usd is not None else None
+            plan = "free" if limit <= 5.0 else "paying"
+            payload = {
+                "configured": True,
+                "connected": True,
+                "username": db_key.account or "active",
+                "plan": plan,
+                "key_label": key.label,
+                "key_masked": key.masked,
+                "monthly_usage_usd": used,
+                "monthly_limit_usd": limit,
+                "remaining_usd": rem,
+                "cycle_end": None,
+                "max_concurrent_runs": None,
+                "max_memory_mb": None,
+            }
+            _apify_status_cache[cache_key] = (now, payload)
+            return payload
+
+    # Live network check (when refresh=True or initial check without DB snapshot)
     try:
         async with ApifyClient(key.token) as client:
             me = await client.me()
             limits = summarize_limits(await client.limits())
     except ApifyError as exc:
-        return {"configured": True, "connected": False, "error": redact(exc)}
+        payload = {"configured": True, "connected": False, "error": redact(exc)}
+        _apify_status_cache[cache_key] = (now, payload)
+        return payload
     except Exception as exc:  # noqa: BLE001 - network failures
-        return {"configured": True, "connected": False, "error": redact(f"{type(exc).__name__}: {exc}")}
+        payload = {"configured": True, "connected": False, "error": redact(f"{type(exc).__name__}: {exc}")}
+        _apify_status_cache[cache_key] = (now, payload)
+        return payload
+
     plan = me.get("plan") or {}
-    return {"configured": True, "connected": True, "username": me.get("username"),
-            "plan": plan.get("id") if isinstance(plan, dict) else plan, "key_label": key.label,
-            "key_masked": key.masked, **limits}
+    payload = {
+        "configured": True,
+        "connected": True,
+        "username": me.get("username"),
+        "plan": plan.get("id") if isinstance(plan, dict) else plan,
+        "key_label": key.label,
+        "key_masked": key.masked,
+        **limits,
+    }
+    _apify_status_cache[cache_key] = (now, payload)
+
+    # Persist the snapshot into DB if it's a pooled key
+    if key.key_id is not None:
+        try:
+            db_key = db.get(ApifyKey, key.key_id)
+            if db_key:
+                db_key.account = me.get("username")
+                db_key.monthly_usage_usd = limits.get("monthly_usage_usd")
+                db_key.monthly_limit_usd = limits.get("monthly_limit_usd")
+                db_key.usage_checked_at = datetime.now(UTC)
+                db.commit()
+        except Exception:
+            pass
+
+    return payload
 
 
 @router.get("/settings")
 def get_app_settings(db: Session = Depends(get_db)):
-    return app_settings.all_settings(db) | {"llm_configured": llm_available(),
-                                            "max_run_cost_usd": get_settings().max_run_cost_usd,
-                                            "respect_robots_txt": get_settings().respect_robots_txt}
+    return app_settings.all_settings(db) | {
+        "llm_configured": llm_available(),
+        "max_run_cost_usd": float(app_settings.get_setting(db, "max_run_cost_usd") or get_settings().max_run_cost_usd),
+        "naukri_limit": int(app_settings.get_setting(db, "naukri_limit") or 30),
+        "respect_robots_txt": get_settings().respect_robots_txt,
+    }
 
 
 class SettingsIn(BaseModel):
@@ -142,6 +220,8 @@ class SettingsIn(BaseModel):
     allow_senior_max_years: float | None = None
     llm_model: Literal[tuple(ALLOWED_MODELS)] | None = None  # type: ignore[valid-type]
     llm_top_n: int | None = Field(default=None, ge=5, le=500)
+    naukri_limit: int | None = Field(default=None, ge=5, le=100)
+    max_run_cost_usd: float | None = Field(default=None, ge=0.5, le=50.0)
 
 
 @router.put("/settings")
@@ -199,8 +279,8 @@ async def create_run(body: RunIn, db: Session = Depends(get_db)):
     data["keywords"] = {k: [kw.strip() for kw in v if kw.strip()] for k, v in data["keywords"].items()}
     run = SearchRun(**data, status=RunStatus.DRAFT, progress={})
     db.add(run)
-    db.commit()
-    run.estimate = await estimate_specs(db, run, plan_tasks(run))
+    n_limit = int(app_settings.get_setting(db, "naukri_limit") or 30)
+    run.estimate = await estimate_specs(db, run, plan_tasks(run, naukri_limit=n_limit))
     db.commit()
     return run_out(run)
 
@@ -216,7 +296,8 @@ async def update_run(run_id: int, body: RunIn, db: Session = Depends(get_db)):
             continue
         setattr(run, k, v)
     db.commit()
-    run.estimate = await estimate_specs(db, run, plan_tasks(run))
+    n_limit = int(app_settings.get_setting(db, "naukri_limit") or 30)
+    run.estimate = await estimate_specs(db, run, plan_tasks(run, naukri_limit=n_limit))
     db.commit()
     return run_out(run)
 
@@ -224,8 +305,14 @@ async def update_run(run_id: int, body: RunIn, db: Session = Depends(get_db)):
 @router.get("/runs")
 def list_runs(db: Session = Depends(get_db)):
     runs = db.scalars(select(SearchRun).order_by(SearchRun.id.desc()).limit(100))
-    return [run_out(r) | {"tasks": None, "progress": {"counts": (r.progress or {}).get("counts", {}),
-                                                         "stage": (r.progress or {}).get("stage")}} for r in runs]
+    return [
+        run_out(r)
+        | {
+            "tasks": None,
+            "progress": {"counts": (r.progress or {}).get("counts", {}), "stage": (r.progress or {}).get("stage")},
+        }
+        for r in runs
+    ]
 
 
 @router.post("/runs/{run_id}/start")
@@ -257,8 +344,13 @@ async def run_events(run_id: int, request: Request):
                 return
             with SessionLocal() as db:
                 run = db.get(SearchRun, run_id)
-                payload = {"status": run.status, "progress": run.progress, "cost_usd": run.cost_usd,
-                           "error": run.error, "round": run.round}
+                payload = {
+                    "status": run.status,
+                    "progress": run.progress,
+                    "cost_usd": run.cost_usd,
+                    "error": run.error,
+                    "round": run.round,
+                }
             body = json.dumps(payload, default=str)
             if body != last:
                 last = body
@@ -273,8 +365,9 @@ async def run_events(run_id: int, request: Request):
                 return
             await asyncio.sleep(1)
 
-    return StreamingResponse(stream(), media_type="text/event-stream",
-                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+    return StreamingResponse(
+        stream(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+    )
 
 
 @router.post("/runs/{run_id}/cancel")
@@ -313,28 +406,35 @@ SORTS = {
 }
 
 
-@router.get("/runs/{run_id}/jobs")
-def list_jobs(
-    run_id: int,
-    status: str = Query("final", description="final | verified_active | uncertain | inactive | unverified | "
-                                               "filtered | duplicates | all | shortlisted | applied | rejected"),
+def _build_jobs_query(
+    db: Session,
+    run_id: int | None = None,
+    status: str = "all",
     platform: str | None = None,
     min_score: int | None = None,
-    q: str | None = None,
+    work_mode: str | None = None,
     city: str | None = None,
     tier: str | None = None,
     category: str | None = None,
+    q: str | None = None,
     sort: str = "score",
-    page: int = Query(1, ge=1),
-    page_size: int = Query(50, ge=1, le=500),
-    db: Session = Depends(get_db),
+    page: int = 1,
+    page_size: int = 50,
 ):
-    run = _get(db, SearchRun, run_id)
-    stmt = (select(Job).outerjoin(Verification).outerjoin(Score).where(Job.run_id == run_id))
+    stmt = select(Job).outerjoin(Verification).outerjoin(Score)
+    run = db.get(SearchRun, run_id) if run_id else None
+    if run_id:
+        stmt = stmt.where(Job.run_id == run_id)
+
     if status == "final":
-        stmt = stmt.where(Job.filter_reason.is_(None), Job.duplicate_of.is_(None),
-                          Verification.status == "verified_active", Score.total >= run.min_score)
-        if run.exclude_linkedin_easy_apply:
+        threshold = run.min_score if run else 60
+        stmt = stmt.where(
+            Job.filter_reason.is_(None),
+            Job.duplicate_of.is_(None),
+            or_(Verification.status == "verified_active", Verification.status.is_(None)),
+            or_(Score.total >= threshold, Score.total.is_(None)),
+        )
+        if run and run.exclude_linkedin_easy_apply:
             stmt = stmt.where(or_(Verification.easy_apply.is_(None), Verification.easy_apply.is_(False)))
     elif status in ("verified_active", "uncertain", "inactive"):
         stmt = stmt.where(Job.duplicate_of.is_(None), Verification.status == status)
@@ -344,15 +444,25 @@ def list_jobs(
         stmt = stmt.where(Job.filter_reason.is_not(None))
     elif status == "duplicates":
         stmt = stmt.where(Job.duplicate_of.is_not(None))
-    elif status in ("shortlisted", "applied", "rejected"):
+    elif status in ("shortlisted", "applied", "interviewing", "offer", "rejected", "saved"):
         stmt = stmt.where(Job.user_state == status)
     elif status != "all":
         raise HTTPException(400, f"unknown status {status}")
-    if platform:
-        stmt = stmt.where(Job.platform.in_(platform.split(",")))
+
+    if platform and platform != "all":
+        platforms_list = [p.strip().lower() for p in platform.split(",") if p.strip()]
+        if platforms_list:
+            stmt = stmt.where(Job.platform.in_(platforms_list))
     if min_score is not None:
         stmt = stmt.where(Score.total >= min_score)
-    if city:
+    if work_mode and work_mode != "all":
+        if work_mode == "remote":
+            stmt = stmt.where(or_(Job.is_remote.is_(True), Job.work_mode == "remote"))
+        elif work_mode == "hybrid":
+            stmt = stmt.where(Job.work_mode == "hybrid")
+        elif work_mode == "office":
+            stmt = stmt.where(Job.work_mode == "office")
+    if city and city != "all":
         stmt = stmt.where(Job.city.in_(city.split(",")))
     if tier:
         stmt = stmt.where(Score.company_tier == tier)
@@ -360,12 +470,120 @@ def list_jobs(
         stmt = stmt.where(Score.category.in_(category.split(",")))
     if q:
         like = f"%{q.strip()}%"
-        stmt = stmt.where(or_(Job.title.ilike(like), Job.company.ilike(like), Job.description.ilike(like),
-                              Score.key_skills_match.ilike(like)))
-    total = db.scalar(select(func.count()).select_from(stmt.subquery()))
+        stmt = stmt.where(
+            or_(
+                Job.title.ilike(like),
+                Job.company.ilike(like),
+                Job.description.ilike(like),
+                Score.key_skills_match.ilike(like),
+                Job.location_text.ilike(like),
+                Job.user_note.ilike(like),
+            )
+        )
+
+    total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
     order = SORTS.get(sort, SORTS["score"])()
-    rows = db.scalars(stmt.order_by(order, Job.id).offset((page - 1) * page_size).limit(page_size)).all()
-    return {"total": total, "page": page, "page_size": page_size, "items": [job_row(j) for j in rows]}
+    rows = db.scalars(stmt.order_by(order, Job.id.desc()).offset((page - 1) * page_size).limit(page_size)).all()
+
+    # Calculate statistics for the query
+    stats_stmt = (
+        select(
+            func.count(Job.id),
+            func.count(func.nullif(Job.user_state != "applied", True)),
+            func.count(func.nullif(Job.user_state != "shortlisted", True)),
+            func.count(func.nullif(Job.user_state != "interviewing", True)),
+            func.avg(Score.total),
+        )
+        .select_from(Job)
+        .outerjoin(Score)
+    )
+    if run_id:
+        stats_stmt = stats_stmt.where(Job.run_id == run_id)
+    total_all, applied_c, short_c, interv_c, avg_s = db.execute(stats_stmt).one()
+
+    return {
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "items": [job_row(j) for j in rows],
+        "stats": {
+            "total": total_all or 0,
+            "applied": applied_c or 0,
+            "shortlisted": short_c or 0,
+            "interviewing": interv_c or 0,
+            "avg_score": round(avg_s, 1) if avg_s else 0,
+        },
+    }
+
+
+@router.get("/jobs")
+def get_all_jobs(
+    run_id: int | None = None,
+    status: str = Query(
+        "all", description="all | final | shortlisted | applied | interviewing | offer | rejected | saved"
+    ),
+    platform: str | None = None,
+    min_score: int | None = None,
+    work_mode: str | None = None,
+    city: str | None = None,
+    tier: str | None = None,
+    category: str | None = None,
+    q: str | None = None,
+    sort: str = "score",
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=500),
+    db: Session = Depends(get_db),
+):
+    return _build_jobs_query(
+        db=db,
+        run_id=run_id,
+        status=status,
+        platform=platform,
+        min_score=min_score,
+        work_mode=work_mode,
+        city=city,
+        tier=tier,
+        category=category,
+        q=q,
+        sort=sort,
+        page=page,
+        page_size=page_size,
+    )
+
+
+@router.get("/runs/{run_id}/jobs")
+def list_jobs(
+    run_id: int,
+    status: str = Query(
+        "final", description="final | all | shortlisted | applied | interviewing | offer | rejected | saved"
+    ),
+    platform: str | None = None,
+    min_score: int | None = None,
+    work_mode: str | None = None,
+    q: str | None = None,
+    city: str | None = None,
+    tier: str | None = None,
+    category: str | None = None,
+    sort: str = "score",
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=500),
+    db: Session = Depends(get_db),
+):
+    return _build_jobs_query(
+        db=db,
+        run_id=run_id,
+        status=status,
+        platform=platform,
+        min_score=min_score,
+        work_mode=work_mode,
+        city=city,
+        tier=tier,
+        category=category,
+        q=q,
+        sort=sort,
+        page=page,
+        page_size=page_size,
+    )
 
 
 @router.get("/jobs/{job_id}")
@@ -377,7 +595,7 @@ def get_job(job_id: int, db: Session = Depends(get_db)):
 
 
 class JobPatch(BaseModel):
-    user_state: Literal["shortlisted", "applied", "rejected"] | None = None
+    user_state: Literal["shortlisted", "applied", "interviewing", "offer", "rejected", "saved"] | None = None
     user_note: str | None = Field(default=None, max_length=5000)
 
 
@@ -390,11 +608,103 @@ def patch_job(job_id: int, body: JobPatch, db: Session = Depends(get_db)):
     return job_row(job)
 
 
+@router.delete("/jobs/{job_id}")
+def delete_job(job_id: int, db: Session = Depends(get_db)):
+    job = _get(db, Job, job_id)
+    db.delete(job)
+    db.commit()
+    return {"ok": True, "deleted_id": job_id}
+
+
+@router.delete("/runs/{run_id}")
+def delete_run(run_id: int, db: Session = Depends(get_db)):
+    run = _get(db, SearchRun, run_id)
+    db.delete(run)
+    db.commit()
+    return {"ok": True, "deleted_run_id": run_id}
+
+
+# ------------------------------------------------------------------ excel
+
+
+@router.post("/excel/upload")
+async def upload_excel(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    if not file.filename:
+        raise HTTPException(400, "No file provided")
+    name = file.filename.lower()
+    if not (name.endswith(".xlsx") or name.endswith(".xls") or name.endswith(".csv")):
+        raise HTTPException(400, "Only Excel (.xlsx, .xls) and CSV (.csv) files are supported")
+    content = await file.read()
+    if len(content) > 25 * 1024 * 1024:
+        raise HTTPException(413, "File exceeds 25 MB limit")
+    try:
+        result = import_jobs_from_excel(content, file.filename, db)
+    except Exception as exc:
+        raise HTTPException(400, f"Failed to import Excel file: {exc}") from exc
+    return result
+
+
+@router.get("/excel/template")
+def download_excel_template():
+    data = generate_sample_template()
+    return Response(
+        data,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="Job_Opportunities_Template.xlsx"'},
+    )
+
+
+@router.get("/excel/runs")
+def list_excel_runs(db: Session = Depends(get_db)):
+    runs = db.scalars(select(SearchRun).order_by(SearchRun.id.desc()).limit(100)).all()
+    results = []
+    for r in runs:
+        final_cnt = db.scalar(select(func.count(Job.id)).where(Job.run_id == r.id)) or 0
+        results.append(
+            {
+                "id": r.id,
+                "filename": (r.estimate or {}).get("filename") or (r.resume.filename if r.resume else f"Run #{r.id}"),
+                "status": r.status,
+                "roles": r.roles,
+                "job_count": final_cnt,
+                "created_at": r.created_at,
+            }
+        )
+    return results
+
+
+@router.get("/export/excel")
+def export_all_jobs(run_id: int | None = None, db: Session = Depends(get_db)):
+    if run_id:
+        run = _get(db, SearchRun, run_id)
+        jobs = final_jobs_query(db, run)
+        if not jobs:
+            # Fallback to all jobs in the run
+            jobs = db.scalars(select(Job).where(Job.run_id == run_id)).all()
+        data = build_workbook(jobs, full=False, run=run, profile=run.resume.parsed_profile if run.resume else None)
+        name = f"Job_Export_Run_{run_id}.xlsx"
+    else:
+        jobs = db.scalars(select(Job).outerjoin(Score).order_by(Score.total.desc().nulls_last(), Job.id.desc())).all()
+        data = build_workbook(jobs, full=False)
+        name = "Job_Opportunities_Export.xlsx"
+
+    return Response(
+        data,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{name}"'},
+    )
+
+
 @router.get("/runs/{run_id}/export.xlsx")
 def export(run_id: int, full: bool = False, db: Session = Depends(get_db)):
     run = _get(db, SearchRun, run_id)
     jobs = final_jobs_query(db, run)
-    data = build_workbook(jobs, full=full, run=run, profile=run.resume.parsed_profile)
+    if not jobs:
+        jobs = db.scalars(select(Job).where(Job.run_id == run_id)).all()
+    data = build_workbook(jobs, full=full, run=run, profile=run.resume.parsed_profile if run.resume else None)
     name = FILENAME if not full else FILENAME.replace(".xlsx", "_Full_Report.xlsx")
-    return Response(data, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    headers={"Content-Disposition": f'attachment; filename="{name}"'})
+    return Response(
+        data,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{name}"'},
+    )

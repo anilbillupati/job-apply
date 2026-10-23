@@ -87,8 +87,12 @@ class FixtureApify:
 
     async def wait(self, run_id: str, should_stop=None) -> dict:
         platform, items = FixtureApify._runs[run_id]
-        return {"id": run_id, "status": "SUCCEEDED", "defaultDatasetId": run_id,
-                "usageTotalUsd": round(len(items) * PRICE_PER_ITEM[platform], 5)}
+        return {
+            "id": run_id,
+            "status": "SUCCEEDED",
+            "defaultDatasetId": run_id,
+            "usageTotalUsd": round(len(items) * PRICE_PER_ITEM[platform], 5),
+        }
 
     async def items(self, dataset_id: str) -> list[dict]:
         return FixtureApify._runs[dataset_id][1]
@@ -107,11 +111,18 @@ def _page(name: str) -> str:
 class FixtureVerifier:
     """Runs the real page classifiers against recorded pages chosen by each fixture's `_demo_status`."""
 
-    LINKEDIN_PAGES = {"offsite": "linkedin_offsite.html", "easy": "linkedin_easy_apply.html",
-                      "closed": "linkedin_closed.html", "uncertain": "linkedin_unknown.html"}
+    LINKEDIN_PAGES = {
+        "offsite": "linkedin_offsite.html",
+        "easy": "linkedin_easy_apply.html",
+        "closed": "linkedin_closed.html",
+        "uncertain": "linkedin_unknown.html",
+    }
     NAUKRI_PAGES = {"active": "naukri_active.txt", "expired": "naukri_expired.txt", "captcha": "naukri_captcha.txt"}
-    EMPLOYER_PAGES = {"active": "employer_active.html", "closed": "employer_closed.html",
-                      "remote_us": "employer_remote_us.html"}
+    EMPLOYER_PAGES = {
+        "active": "employer_active.html",
+        "closed": "employer_closed.html",
+        "remote_us": "employer_remote_us.html",
+    }
 
     def __init__(self):
         self.li = {str(i["id"]): i["_demo_status"] for i in load_dataset("linkedin")}
@@ -124,26 +135,47 @@ class FixtureVerifier:
     async def linkedin(self, job_id: str) -> dict:
         page = self.LINKEDIN_PAGES.get(self.li.get(job_id, "uncertain"), "linkedin_unknown.html")
         c = classify_linkedin(_page(page))
-        return result(c["status"], "linkedin_guest_api (fixture)", c.get("easy_apply"), fixture=page,
-                      http_status=200, matched=c["matched"], posted_time_ago=c.get("posted_time_ago"),
-                      applicants=c.get("applicants"))
+        return result(
+            c["status"],
+            "linkedin_guest_api (fixture)",
+            c.get("easy_apply"),
+            fixture=page,
+            http_status=200,
+            matched=c["matched"],
+            posted_time_ago=c.get("posted_time_ago"),
+            applicants=c.get("applicants"),
+        )
 
     async def naukri(self, listing_url: str | None) -> dict:
         page = self.NAUKRI_PAGES.get(self.nk.get(listing_url or "", ""), "naukri_captcha.txt")
         c = classify_naukri_text(_page(page))
-        return result(c["status"], "naukri_playwright (fixture)", fixture=page, url=listing_url,
-                      matched=c["matched"], reason=c.get("reason"), posted=c.get("posted"))
+        return result(
+            c["status"],
+            "naukri_playwright (fixture)",
+            fixture=page,
+            url=listing_url,
+            matched=c["matched"],
+            reason=c.get("reason"),
+            posted=c.get("posted"),
+        )
 
     async def indeed(self, expired: bool, employer_url: str | None) -> dict:
         if expired:
             return result("inactive", "indeed_scraped_flag", matched=["expired == true"])
         if not employer_url:
-            return result("uncertain", "indeed_employer_page (fixture)",
-                          reason="no employer jobUrl (Indeed-hosted apply)")
+            return result(
+                "uncertain", "indeed_employer_page (fixture)", reason="no employer jobUrl (Indeed-hosted apply)"
+            )
         page = self.EMPLOYER_PAGES.get(self.ind.get(employer_url, ""), "employer_active.html")
         c = classify_employer_page(_page(page), 200)
-        return result(c["status"], "indeed_employer_page (fixture)", fixture=page, url=employer_url,
-                      matched=c["matched"], reason=c.get("reason"))
+        return result(
+            c["status"],
+            "indeed_employer_page (fixture)",
+            fixture=page,
+            url=employer_url,
+            matched=c["matched"],
+            reason=c.get("reason"),
+        )
 
 
 def demo_profile() -> dict:

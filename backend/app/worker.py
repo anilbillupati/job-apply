@@ -45,9 +45,13 @@ async def enqueue_run(run_id: int, resume: bool = False) -> str:
 
 def interrupted_run_ids() -> list[int]:
     with SessionLocal() as db:
-        return list(db.scalars(select(SearchRun.id).where(
-            SearchRun.status.in_([RunStatus.QUEUED, RunStatus.RUNNING, RunStatus.CANCELLING])
-        )))
+        return list(
+            db.scalars(
+                select(SearchRun.id).where(
+                    SearchRun.status.in_([RunStatus.QUEUED, RunStatus.RUNNING, RunStatus.CANCELLING])
+                )
+            )
+        )
 
 
 async def resume_interrupted() -> None:

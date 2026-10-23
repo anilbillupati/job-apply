@@ -132,7 +132,12 @@ def prescore(job, skills: SkillDict, roles: list[str], candidate_years: float, c
 
     total = max(0.0, min(100.0, skill_pts + exp_pts + title_pts + loc_pts - penalty))
     detail = {
-        "skills": round(skill_pts, 1), "experience": exp_pts, "title": title_pts, "location": loc_pts,
-        "penalty": round(penalty, 1), "matched_skills": matched[:25], "stack_mismatches": mismatches,
+        "skills": round(skill_pts, 1),
+        "experience": exp_pts,
+        "title": title_pts,
+        "location": loc_pts,
+        "penalty": round(penalty, 1),
+        "matched_skills": matched[:25],
+        "stack_mismatches": mismatches,
     }
     return round(total, 1), detail

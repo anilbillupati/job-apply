@@ -67,7 +67,7 @@ def find_duplicates(jobs: list, verified: dict[int, str] | None = None) -> dict[
             return x
 
         for i, a in enumerate(group):
-            for b in group[i + 1:]:
+            for b in group[i + 1 :]:
                 if a.platform == b.platform and a.platform_job_id == b.platform_job_id:
                     continue
                 if is_same_job(a, b):

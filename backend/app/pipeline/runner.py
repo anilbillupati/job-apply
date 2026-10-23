@@ -34,8 +34,14 @@ log = logging.getLogger("runner")
 
 STAGES = ["scrape", "normalize", "filter", "dedupe", "prescore", "verify", "score", "finalize"]
 STAGE_LABEL = {
-    "scrape": "scraping", "normalize": "normalizing", "filter": "filtering", "dedupe": "deduping",
-    "prescore": "pre-scoring", "verify": "verifying", "score": "scoring", "finalize": "finalizing",
+    "scrape": "scraping",
+    "normalize": "normalizing",
+    "filter": "filtering",
+    "dedupe": "deduping",
+    "prescore": "pre-scoring",
+    "verify": "verifying",
+    "score": "scoring",
+    "finalize": "finalizing",
 }
 VERIFY_MIN_PRESCORE = 60
 MAX_CONCURRENT_APIFY = 10
@@ -99,8 +105,10 @@ class ApifyPool:
             if self.current is not None and self.current.key_id != bad.key_id:
                 return self.current  # another task already switched
             nxt = keys.failover(self.ex.db, bad, reason, self.ex.run_id) if self.ex.deps.use_key_pool else None
-            self.ex.event(f"Apify key {bad.label} failed ({redact(reason)[:160]}); "
-                          + (f"switching to {nxt.label}" if nxt else "no other key available today"))
+            self.ex.event(
+                f"Apify key {bad.label} failed ({redact(reason)[:160]}); "
+                + (f"switching to {nxt.label}" if nxt else "no other key available today")
+            )
             self.current = nxt
             if nxt:
                 self._log_run(nxt)
@@ -253,14 +261,18 @@ class RunExecutor:
         all_round = [t for t in self.run.tasks if t.round == self.run.round]
         for platform in {t.platform for t in all_round}:
             mine = [t for t in all_round if t.platform == platform]
-            self.set_platform(platform, stage="scraping", tasks_total=len(mine),
-                              tasks_done=sum(t.status in ("fetched", "failed") for t in mine))
+            self.set_platform(
+                platform,
+                stage="scraping",
+                tasks_total=len(mine),
+                tasks_done=sum(t.status in ("fetched", "failed") for t in mine),
+            )
         self.save()
         if not tasks:
             return
-        existing = set(self.db.execute(
-            select(RawJob.platform, RawJob.platform_job_id).where(RawJob.run_id == self.run_id)
-        ).all())
+        existing = set(
+            self.db.execute(select(RawJob.platform, RawJob.platform_job_id).where(RawJob.run_id == self.run_id)).all()
+        )
         sem = asyncio.Semaphore(MAX_CONCURRENT_APIFY)
         pool = ApifyPool(self)
         try:
@@ -292,8 +304,10 @@ class RunExecutor:
                                 raise ApifyError(f"no usable Apify key left today ({exc})") from None
                         except ApifyCapacityError:
                             wait = random.uniform(*self.deps.capacity_backoff)
-                            self.event(f"{task.platform}: Apify capacity limit (402), retrying in {wait:.0f}s",
-                                       attempt=attempt + 1)
+                            self.event(
+                                f"{task.platform}: Apify capacity limit (402), retrying in {wait:.0f}s",
+                                attempt=attempt + 1,
+                            )
                             await asyncio.sleep(wait)
                     else:
                         raise ApifyError("Apify capacity limit persisted; giving up on this task")
@@ -323,8 +337,7 @@ class RunExecutor:
                 task.item_count = len(items)
                 task.status = "fetched"
                 self.db.commit()
-                self.event(f"{task.platform}: {len(items)} items ({added} new) from {task.actor_id}",
-                           task_id=task.id)
+                self.event(f"{task.platform}: {len(items)} items ({added} new) from {task.actor_id}", task_id=task.id)
             except Cancelled:
                 raise
             except Exception as exc:  # noqa: BLE001 - one failed task must not kill the run
@@ -336,7 +349,8 @@ class RunExecutor:
                 self._add_cost()
                 pl = self.p["platforms"].setdefault(task.platform, {})
                 pl["tasks_done"] = sum(
-                    t.status in ("fetched", "failed") for t in self.run.tasks
+                    t.status in ("fetched", "failed")
+                    for t in self.run.tasks
                     if t.platform == task.platform and t.round == self.run.round
                 )
                 pl["items"] = sum(t.item_count for t in self.run.tasks if t.platform == task.platform)
@@ -349,8 +363,14 @@ class RunExecutor:
             if t.apify_run_id:
                 per_key.setdefault(t.apify_key_id, []).append(t)
         for key_id, ts in per_key.items():
-            keys.record_run_spend(self.db, self.run_id, key_id, len(ts), sum(t.cost_usd or 0 for t in ts),
-                                  sum(t.item_count or 0 for t in ts))
+            keys.record_run_spend(
+                self.db,
+                self.run_id,
+                key_id,
+                len(ts),
+                sum(t.cost_usd or 0 for t in ts),
+                sum(t.item_count or 0 for t in ts),
+            )
 
     def _add_cost(self) -> None:
         per: dict = {}
@@ -366,9 +386,17 @@ class RunExecutor:
             if not pid or (task.platform, pid) in existing:
                 continue
             q = item_query(item, task.query_meta or {})
-            self.db.add(RawJob(run_id=self.run_id, platform=task.platform, platform_job_id=pid, payload=item,
-                               keyword=q.get("keyword"), location_query=q.get("location"),
-                               is_remote_query=bool(q.get("remote"))))
+            self.db.add(
+                RawJob(
+                    run_id=self.run_id,
+                    platform=task.platform,
+                    platform_job_id=pid,
+                    payload=item,
+                    keyword=q.get("keyword"),
+                    location_query=q.get("location"),
+                    is_remote_query=bool(q.get("remote")),
+                )
+            )
             existing.add((task.platform, pid))
             added += 1
         self.db.commit()
@@ -391,21 +419,35 @@ class RunExecutor:
                 log.warning(f"could not normalize raw job {raw.id}: {exc}")
                 raw.normalized = True
                 continue
-            city = flt.resolve_city(f["cities"], f["is_remote"], self.run.locations or [],
-                                    self.run.include_remote_india)
-            self.db.add(Job(
-                run_id=self.run_id, raw_job_id=raw.id, platform=raw.platform,
-                platform_job_id=raw.platform_job_id, title=f["title"][:500], company=(f["company"] or "")[:300],
-                location_text=(f["location_text"] or "")[:500],
-                city=city, is_remote=f["is_remote"], work_mode=f["work_mode"], posted_date=f["posted_date"],
-                description=f["description"], exp_min=f["exp_min"], exp_max=f["exp_max"],
-                salary_text=(f["salary_text"] or None) and f["salary_text"][:200],
-                listing_url=f["listing_url"], apply_url=f["apply_url"], employer_url=f["employer_url"],
-                applicants_text=f["applicants_text"],
-                is_agency=flt.is_agency(f["company"], f["agency_signal"], blocklist, allowlist),
-                dedupe_key=dd.dedupe_key(f["company"], f["title"]),
-                prescore_detail={"extra": f.get("extra", {})},
-            ))
+            city = flt.resolve_city(
+                f["cities"], f["is_remote"], self.run.locations or [], self.run.include_remote_india
+            )
+            self.db.add(
+                Job(
+                    run_id=self.run_id,
+                    raw_job_id=raw.id,
+                    platform=raw.platform,
+                    platform_job_id=raw.platform_job_id,
+                    title=f["title"][:500],
+                    company=(f["company"] or "")[:300],
+                    location_text=(f["location_text"] or "")[:500],
+                    city=city,
+                    is_remote=f["is_remote"],
+                    work_mode=f["work_mode"],
+                    posted_date=f["posted_date"],
+                    description=f["description"],
+                    exp_min=f["exp_min"],
+                    exp_max=f["exp_max"],
+                    salary_text=(f["salary_text"] or None) and f["salary_text"][:200],
+                    listing_url=f["listing_url"],
+                    apply_url=f["apply_url"],
+                    employer_url=f["employer_url"],
+                    applicants_text=f["applicants_text"],
+                    is_agency=flt.is_agency(f["company"], f["agency_signal"], blocklist, allowlist),
+                    dedupe_key=dd.dedupe_key(f["company"], f["title"]),
+                    prescore_detail={"extra": f.get("extra", {})},
+                )
+            )
             raw.normalized = True
         self.db.commit()
         collected = sum(t.item_count for t in self.run.tasks)
@@ -423,15 +465,21 @@ class RunExecutor:
     async def stage_filter(self) -> None:
         s = lambda k: app_settings.get_setting(self.db, k)  # noqa: E731
         cfg = flt.FilterConfig(
-            cities=self.run.locations or [], include_remote=self.run.include_remote_india,
-            work_arrangement=self.run.work_arrangement or "any", candidate_years=self.years,
-            agency_blocklist=s("agency_blocklist") or [], title_exclusions=s("title_exclusions") or [],
-            seniority_exclusions=s("seniority_exclusions") or [], allow_senior_max_years=s("allow_senior_max_years"),
+            cities=self.run.locations or [],
+            include_remote=self.run.include_remote_india,
+            work_arrangement=self.run.work_arrangement or "any",
+            candidate_years=self.years,
+            agency_blocklist=s("agency_blocklist") or [],
+            title_exclusions=s("title_exclusions") or [],
+            seniority_exclusions=s("seniority_exclusions") or [],
+            allow_senior_max_years=s("allow_senior_max_years"),
         )
         # Jobs shown in an earlier run's ranked list, or marked by the user, are skipped (by platform job ID).
         seen = {
-            (pl, pid) for pl, pid, first_run in
-            self.db.execute(select(SeenJob.platform, SeenJob.platform_job_id, SeenJob.first_run_id)).all()
+            (pl, pid)
+            for pl, pid, first_run in self.db.execute(
+                select(SeenJob.platform, SeenJob.platform_job_id, SeenJob.first_run_id)
+            ).all()
             if first_run != self.run_id
         }
         excluded = [c.strip().lower() for c in (self.run.exclude_companies or []) if c.strip()]
@@ -454,8 +502,7 @@ class RunExecutor:
         self.p["counts"].update(filtered=dict(reasons), passed_filters=passed)
         for platform in PLATFORMS:
             self.p["per_platform"].setdefault(platform, {})["passed_filters"] = per_pass.get(platform, 0)
-        self.event(f"Filters: {passed} passed, {sum(reasons.values())} removed",
-                   reasons=dict(reasons))
+        self.event(f"Filters: {passed} passed, {sum(reasons.values())} removed", reasons=dict(reasons))
 
     # -------------------------------------------------------------- stage: dedupe
 
@@ -511,11 +558,15 @@ class RunExecutor:
         verified = self._verified_map()
         jobs = [j for j in self.jobs() if not j.filter_reason and (j.prescore or 0) >= VERIFY_MIN_PRESCORE]
         if not include_dups:
-            return sorted([j for j in jobs if j.duplicate_of is None and j.id not in verified],
-                          key=lambda j: -(j.prescore or 0))
+            return sorted(
+                [j for j in jobs if j.duplicate_of is None and j.id not in verified], key=lambda j: -(j.prescore or 0)
+            )
         # Second pass: duplicates whose primary could not be verified active.
-        return [j for j in jobs if j.duplicate_of is not None and j.id not in verified
-                and verified.get(j.duplicate_of) != "verified_active"]
+        return [
+            j
+            for j in jobs
+            if j.duplicate_of is not None and j.id not in verified and verified.get(j.duplicate_of) != "verified_active"
+        ]
 
     async def stage_verify(self) -> None:
         verifier = self.deps.verifier_factory()
@@ -557,9 +608,16 @@ class RunExecutor:
                 else:
                     extra = (job.prescore_detail or {}).get("extra", {})
                     res = await verifier.indeed(bool(extra.get("expired")), job.employer_url)
-                self.db.merge(Verification(job_id=job.id, status=res["status"], method=res["method"],
-                                           easy_apply=res.get("easy_apply"), evidence=res["evidence"],
-                                           checked_at=datetime.now(UTC)))
+                self.db.merge(
+                    Verification(
+                        job_id=job.id,
+                        status=res["status"],
+                        method=res["method"],
+                        easy_apply=res.get("easy_apply"),
+                        evidence=res["evidence"],
+                        checked_at=datetime.now(UTC),
+                    )
+                )
                 ev = res["evidence"]
                 if ev.get("applicants") and not job.applicants_text:
                     job.applicants_text = ev["applicants"][:100]
@@ -573,7 +631,8 @@ class RunExecutor:
     def _verification_counts(self) -> None:
         rows = self.db.execute(
             select(Verification.status, Verification.easy_apply, Job.platform, Job.duplicate_of)
-            .join(Job).where(Job.run_id == self.run_id)
+            .join(Job)
+            .where(Job.run_id == self.run_id)
         ).all()
         c: Counter = Counter()
         per: dict[str, Counter] = {}
@@ -586,8 +645,9 @@ class RunExecutor:
             else:
                 c[status] += 1
                 per.setdefault(platform, Counter())[status] += 1
-        self.p["counts"]["verified"] = {k: c.get(k, 0) for k in
-                                        ("verified_active", "uncertain", "inactive", "easy_apply_excluded")}
+        self.p["counts"]["verified"] = {
+            k: c.get(k, 0) for k in ("verified_active", "uncertain", "inactive", "easy_apply_excluded")
+        }
         for platform in PLATFORMS:
             self.p["per_platform"].setdefault(platform, {})["verified"] = dict(per.get(platform, {}))
 
@@ -595,12 +655,18 @@ class RunExecutor:
 
     def _score_candidates(self) -> list[Job]:
         q = (
-            select(Job).join(Verification)
-            .where(Job.run_id == self.run_id, Job.filter_reason.is_(None), Job.duplicate_of.is_(None),
-                   Verification.status == "verified_active")
+            select(Job)
+            .join(Verification)
+            .where(
+                Job.run_id == self.run_id,
+                Job.filter_reason.is_(None),
+                Job.duplicate_of.is_(None),
+                Verification.status == "verified_active",
+            )
         )
-        jobs = [j for j in self.db.scalars(q)
-                if not (self.run.exclude_linkedin_easy_apply and j.verification.easy_apply)]
+        jobs = [
+            j for j in self.db.scalars(q) if not (self.run.exclude_linkedin_easy_apply and j.verification.easy_apply)
+        ]
         return sorted(jobs, key=lambda j: -(j.prescore or 0))
 
     async def stage_score(self) -> None:
@@ -621,7 +687,7 @@ class RunExecutor:
                 self._save_score(job, heuristic_score(job, self.profile), "heuristic")
             self.p["scoring"]["done"] = len(todo)
         else:
-            batches = [todo[i:i + BATCH_SIZE] for i in range(0, len(todo), BATCH_SIZE)]
+            batches = [todo[i : i + BATCH_SIZE] for i in range(0, len(todo), BATCH_SIZE)]
             sem = asyncio.Semaphore(3)
 
             async def run_batch(batch: list[Job]):
@@ -646,12 +712,21 @@ class RunExecutor:
         self.save()
 
     def _save_score(self, job: Job, item, model: str) -> None:
-        self.db.merge(Score(
-            job_id=job.id, total=item.total, breakdown=item.breakdown, company_tier=item.company_tier,
-            experience_summary=item.experience_summary, key_skills_match=item.key_skills_match,
-            why_fits=item.why_fits, notes=item.notes, category=item.category, model=model,
-            created_at=datetime.now(UTC),
-        ))
+        self.db.merge(
+            Score(
+                job_id=job.id,
+                total=item.total,
+                breakdown=item.breakdown,
+                company_tier=item.company_tier,
+                experience_summary=item.experience_summary,
+                key_skills_match=item.key_skills_match,
+                why_fits=item.why_fits,
+                notes=item.notes,
+                category=item.category,
+                model=model,
+                created_at=datetime.now(UTC),
+            )
+        )
         self.db.commit()
 
     def _score_counts(self) -> None:
@@ -672,8 +747,10 @@ class RunExecutor:
                 self.set_platform(platform, stage="done")
         self.p["target_met"] = n >= self.run.target_count
         recorded = self._record_seen(final)
-        self.event(f"{n} ranked jobs (target {self.run.target_count}); {recorded} new job IDs added to the "
-                   "seen history so later runs skip them")
+        self.event(
+            f"{n} ranked jobs (target {self.run.target_count}); {recorded} new job IDs added to the "
+            "seen history so later runs skip them"
+        )
 
     def _record_seen(self, final: list[Job]) -> int:
         """Remember shown jobs (and their cross-listings on other platforms) by platform job ID."""
@@ -685,8 +762,16 @@ class RunExecutor:
             if (j.platform, j.platform_job_id) in existing:
                 continue
             existing.add((j.platform, j.platform_job_id))
-            self.db.add(SeenJob(platform=j.platform, platform_job_id=j.platform_job_id, title=j.title[:500],
-                                company=(j.company or "")[:300], first_run_id=self.run_id, reason="shown"))
+            self.db.add(
+                SeenJob(
+                    platform=j.platform,
+                    platform_job_id=j.platform_job_id,
+                    title=j.title[:500],
+                    company=(j.company or "")[:300],
+                    first_run_id=self.run_id,
+                    reason="shown",
+                )
+            )
             added += 1
         self.db.commit()
         return added
@@ -695,9 +780,16 @@ class RunExecutor:
 def final_jobs_query(db: Session, run: SearchRun) -> list[Job]:
     """Jobs that appear in the ranked list and the export: verified active, scored >= min_score."""
     q = (
-        select(Job).join(Verification).join(Score)
-        .where(Job.run_id == run.id, Job.filter_reason.is_(None), Job.duplicate_of.is_(None),
-               Verification.status == "verified_active", Score.total >= run.min_score)
+        select(Job)
+        .join(Verification)
+        .join(Score)
+        .where(
+            Job.run_id == run.id,
+            Job.filter_reason.is_(None),
+            Job.duplicate_of.is_(None),
+            Verification.status == "verified_active",
+            Score.total >= run.min_score,
+        )
         .order_by(Score.total.desc())
     )
     return [j for j in db.scalars(q) if not (run.exclude_linkedin_easy_apply and j.verification.easy_apply)]

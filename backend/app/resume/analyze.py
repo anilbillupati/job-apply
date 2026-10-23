@@ -40,9 +40,18 @@ PROFILE_SCHEMA = {
         "inconsistencies": _STR_LIST,
     },
     "required": [
-        "total_years_experience", "current_title", "employers", "education", "certifications",
-        "skills_professional", "skills_listed_only", "measurable_achievements", "best_fit_categories",
-        "realistic_levels", "gaps", "inconsistencies",
+        "total_years_experience",
+        "current_title",
+        "employers",
+        "education",
+        "certifications",
+        "skills_professional",
+        "skills_listed_only",
+        "measurable_achievements",
+        "best_fit_categories",
+        "realistic_levels",
+        "gaps",
+        "inconsistencies",
     ],
     "additionalProperties": False,
 }
@@ -99,8 +108,9 @@ async def analyze_resume(raw_text: str, model: str) -> tuple[dict, float]:
     total_cost = 0.0
     for _ in range(2):  # validate, retry once on failure
         try:
-            data, cost = await structured_call(model=model, system=system, user=user, schema=PROFILE_SCHEMA,
-                                               op="analyze_resume", effort="medium")
+            data, cost = await structured_call(
+                model=model, system=system, user=user, schema=PROFILE_SCHEMA, op="analyze_resume", effort="medium"
+            )
             total_cost += cost
             profile = Profile.model_validate(data).model_dump()
             profile["source"] = model
@@ -114,12 +124,60 @@ async def analyze_resume(raw_text: str, model: str) -> tuple[dict, float]:
 # ------------------------------------------------------------------ heuristic fallback
 
 SKILL_VOCAB = [
-    "Java", "Spring Boot", "Spring", "Hibernate", "Microservices", "Kafka", "RabbitMQ", "REST", "GraphQL",
-    "Python", "Django", "FastAPI", "Flask", "Node.js", "TypeScript", "JavaScript", "React", "Angular",
-    "SQL", "MySQL", "PostgreSQL", "MongoDB", "Redis", "Elasticsearch", "AWS", "Azure", "GCP", "Docker",
-    "Kubernetes", "Terraform", "Jenkins", "CI/CD", "Git", "Linux", "Machine Learning", "Deep Learning",
-    "PyTorch", "TensorFlow", "scikit-learn", "NLP", "LLM", "RAG", "LangChain", "LangGraph", "Generative AI",
-    "OpenAI", "Hugging Face", "Vector Database", "Pandas", "NumPy", "Spark", "Airflow", "JUnit", "Go",
+    "Java",
+    "Spring Boot",
+    "Spring",
+    "Hibernate",
+    "Microservices",
+    "Kafka",
+    "RabbitMQ",
+    "REST",
+    "GraphQL",
+    "Python",
+    "Django",
+    "FastAPI",
+    "Flask",
+    "Node.js",
+    "TypeScript",
+    "JavaScript",
+    "React",
+    "Angular",
+    "SQL",
+    "MySQL",
+    "PostgreSQL",
+    "MongoDB",
+    "Redis",
+    "Elasticsearch",
+    "AWS",
+    "Azure",
+    "GCP",
+    "Docker",
+    "Kubernetes",
+    "Terraform",
+    "Jenkins",
+    "CI/CD",
+    "Git",
+    "Linux",
+    "Machine Learning",
+    "Deep Learning",
+    "PyTorch",
+    "TensorFlow",
+    "scikit-learn",
+    "NLP",
+    "LLM",
+    "RAG",
+    "LangChain",
+    "LangGraph",
+    "Generative AI",
+    "OpenAI",
+    "Hugging Face",
+    "Vector Database",
+    "Pandas",
+    "NumPy",
+    "Spark",
+    "Airflow",
+    "JUnit",
+    "Go",
 ]
 
 

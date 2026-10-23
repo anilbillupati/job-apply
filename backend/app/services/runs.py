@@ -4,7 +4,7 @@ import logging
 
 from sqlalchemy.orm import Session
 
-from app.apify.client import ApifyClient, ApifyError, summarize_limits
+from app.apify.client import ApifyClient, ApifyError
 from app.config import get_settings
 from app.logging_setup import redact
 from app.models import RunStatus, ScrapeTask, SearchRun
@@ -29,22 +29,14 @@ class RunError(Exception):
     pass
 
 
-async def remaining_credit(db: Session) -> tuple[keys.ResolvedKey | None, float | None, str | None]:
-    """Today's key and its remaining monthly credit in USD (None if unknown). Never fails over."""
-    key = keys.current_key(db)
-    if key is None:
-        return None, None, "no Apify key configured (add keys on the API keys page or set APIFY_TOKEN)"
-    try:
-        async with ApifyClient(key.token) as client:
-            return key, summarize_limits(await client.limits())["remaining_usd"], None
-    except (ApifyError, Exception) as exc:  # noqa: BLE001 - network or auth problems
-        return key, None, redact(exc)
-
-
 def _estimate(db: Session, run: SearchRun, specs: list[TaskSpec], credit: float | None) -> dict:
+    cap = float(app_settings.get_setting(db, "max_run_cost_usd") or get_settings().max_run_cost_usd)
     return estimate(
-        specs, app_settings.llm_model(db), int(app_settings.get_setting(db, "llm_top_n") or 150),
-        cap=get_settings().max_run_cost_usd, spent=sum(t.cost_usd or 0 for t in run.tasks),
+        specs,
+        app_settings.llm_model(db),
+        int(app_settings.get_setting(db, "llm_top_n") or 150),
+        cap=cap,
+        spent=sum(t.cost_usd or 0 for t in run.tasks),
         remaining_credit=credit,
     )
 
@@ -58,9 +50,16 @@ def _key_note(est: dict, key: keys.ResolvedKey | None, err: str | None) -> dict:
 
 
 async def estimate_specs(db: Session, run: SearchRun, specs: list[TaskSpec], check_credit: bool = True) -> dict:
-    """Cost estimate for a preview. Uses today's key's credit but never switches keys."""
-    key, credit, err = (await remaining_credit(db)) if check_credit else (None, None, None)
-    return _key_note(_estimate(db, run, specs, credit), key, err)
+    """Cost estimate for a preview. Checks credit on the key a start would use (looking past keys
+    without enough credit) but never switches keys itself."""
+    if not check_credit:
+        return _estimate(db, run, specs, None)
+    needed = _estimate(db, run, specs, None)["apify_total_usd"]
+    key, credit, err, switched = await keys.preview_key_with_credit(db, needed)
+    est = _key_note(_estimate(db, run, specs, credit), key, err)
+    if switched and key is not None:
+        est["key_switch"] = f"Today's key lacks credit; Start will switch to {key.label} ({key.masked})."
+    return est
 
 
 async def estimate_for_start(db: Session, run: SearchRun, specs: list[TaskSpec]) -> dict:
@@ -76,15 +75,26 @@ async def estimate_for_start(db: Session, run: SearchRun, specs: list[TaskSpec])
 
 def create_tasks(db: Session, run: SearchRun, specs: list[TaskSpec], round_no: int) -> None:
     """Persist ScrapeTasks with a per-run maxTotalChargeUsd that never exceeds the remaining run cap."""
-    budget = max(get_settings().max_run_cost_usd - sum(t.cost_usd or 0 for t in run.tasks), 0.0)
+    cap = float(app_settings.get_setting(db, "max_run_cost_usd") or get_settings().max_run_cost_usd)
+    budget = max(cap - sum(t.cost_usd or 0 for t in run.tasks), 0.0)
     total_est = sum(s.est_cost for s in specs) or 1.0
     for s in specs:
         # Headroom over the estimate for start events, capped to this task's share of the remaining budget.
         share = budget * (s.est_cost / total_est)
         max_charge = max(min(s.est_cost * 1.15 + 0.02, share), PRICE_PER_ITEM[s.platform] * 10)
-        db.add(ScrapeTask(run_id=run.id, round=round_no, platform=s.platform, actor_id=s.actor_id, input=s.input,
-                          query_meta=s.query_meta, memory_mb=s.memory_mb, max_charge_usd=round(max_charge, 4),
-                          est_items=s.est_items))
+        db.add(
+            ScrapeTask(
+                run_id=run.id,
+                round=round_no,
+                platform=s.platform,
+                actor_id=s.actor_id,
+                input=s.input,
+                query_meta=s.query_meta,
+                memory_mb=s.memory_mb,
+                max_charge_usd=round(max_charge, 4),
+                est_items=s.est_items,
+            )
+        )
     db.commit()
 
 
@@ -92,12 +102,15 @@ async def start_run(db: Session, run: SearchRun) -> dict:
     if run.status not in (RunStatus.DRAFT, RunStatus.FAILED):
         raise RunError(f"run is {run.status}")
     if not keys.has_any_token(db):
-        raise RunError("No Apify key configured: add keys on the API keys page, or set APIFY_TOKEN in .env "
-                       "(or load the demo seed instead)")
+        raise RunError(
+            "No Apify key configured: add keys on the API keys page, or set APIFY_TOKEN in .env "
+            "(or load the demo seed instead)"
+        )
     if not run.resume.parsed_profile:
         raise RunError("resume has no parsed profile")
     if run.status == RunStatus.DRAFT:
-        specs = plan_tasks(run)
+        n_limit = int(app_settings.get_setting(db, "naukri_limit") or 30)
+        specs = plan_tasks(run, naukri_limit=n_limit)
         if not specs:
             raise RunError("nothing to scrape: choose at least one platform, keyword and location")
         est = await estimate_for_start(db, run, specs)
@@ -148,8 +161,13 @@ async def expand_run(db: Session, run: SearchRun, confirm: bool) -> dict:
     est = await estimate_specs(db, run, specs, check_credit=not demo)
     if demo:
         est |= {"demo": True, "note": "Demo run: replays recorded fixtures, no Apify credit is spent."}
-    out = {"step": step, "label": EXPAND_LABEL[step], "changes": changes, "estimate": est,
-           "min_score_unchanged": run.min_score}
+    out = {
+        "step": step,
+        "label": EXPAND_LABEL[step],
+        "changes": changes,
+        "estimate": est,
+        "min_score_unchanged": run.min_score,
+    }
     if not confirm:
         return out
     if not demo:

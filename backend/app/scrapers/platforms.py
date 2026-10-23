@@ -32,9 +32,9 @@ LINKEDIN_LOCATIONS = {
     "Pune": "Pune, Maharashtra, India",
 }
 
-LINKEDIN_PER_SOURCE = 25
-NAUKRI_LIMIT = 40
-INDEED_LIMIT = 40
+LINKEDIN_PER_SOURCE = 20
+NAUKRI_LIMIT = 30
+INDEED_LIMIT = 10
 
 
 @dataclass
@@ -71,6 +71,7 @@ def build_tasks(
     window_days: int,
     candidate_years: float,
     depth: int = 1,
+    naukri_limit: int = NAUKRI_LIMIT,
 ) -> list[TaskSpec]:
     """Build the Apify runs for one platform. `depth` > 1 pages further (Expand search step 3)."""
     targets: list[tuple[str | None, bool]] = [(c, False) for c in cities]
@@ -87,18 +88,23 @@ def build_tasks(
         if not urls:
             return []
         per_source = LINKEDIN_PER_SOURCE * depth
-        return [TaskSpec(
-            LINKEDIN, ACTORS[LINKEDIN],
-            {"urls": urls, "limitPerSource": per_source, "scrapeCompany": True},
-            MEMORY_MB[LINKEDIN], per_source * len(urls), meta,
-        )]
+        return [
+            TaskSpec(
+                LINKEDIN,
+                ACTORS[LINKEDIN],
+                {"urls": urls, "limitPerSource": per_source, "scrapeCompany": True},
+                MEMORY_MB[LINKEDIN],
+                per_source * len(urls),
+                meta,
+            )
+        ]
 
     tasks: list[TaskSpec] = []
     for kw in keywords:
         for city, remote in targets:
             meta = {"*": {"keyword": kw, "location": REMOTE if remote else city, "remote": remote}}
             if platform == NAUKRI:
-                limit = NAUKRI_LIMIT * depth
+                limit = (naukri_limit or NAUKRI_LIMIT) * depth
                 inp = {
                     "keywords": kw,
                     "jobAge": "15" if window_days >= 14 else "7",
@@ -125,6 +131,7 @@ def build_tasks(
 
 
 # ---------------------------------------------------------------- output mapping
+
 
 def item_id(platform: str, item: dict) -> str | None:
     key = {LINKEDIN: "id", NAUKRI: "id", INDEED: "key"}[platform]
@@ -207,8 +214,13 @@ def map_item(platform: str, item: dict, is_remote_query: bool) -> dict:
         )
 
     if platform == NAUKRI:
-        desc = strip_html(first(dig(item, "description", "full"), dig(item, "description", "text"),
-                                item.get("description") if isinstance(item.get("description"), str) else None))
+        desc = strip_html(
+            first(
+                dig(item, "description", "full"),
+                dig(item, "description", "text"),
+                item.get("description") if isinstance(item.get("description"), str) else None,
+            )
+        )
         loc_labels = [loc.get("label") if isinstance(loc, dict) else str(loc) for loc in item.get("locations") or []]
         location = ", ".join(x for x in loc_labels if x)
         wfh = str(item.get("wfhType", "")).strip()
@@ -251,8 +263,13 @@ def map_item(platform: str, item: dict, is_remote_query: bool) -> dict:
         loc = item.get("location") or {}
         if isinstance(loc, str):
             loc = {"formatted": loc}
-        parts = [loc.get("city"), loc.get("admin1Code"), loc.get("admin3Code"), loc.get("formatted"),
-                 dig(loc, "formatted", "long") if isinstance(loc.get("formatted"), dict) else None]
+        parts = [
+            loc.get("city"),
+            loc.get("admin1Code"),
+            loc.get("admin3Code"),
+            loc.get("formatted"),
+            dig(loc, "formatted", "long") if isinstance(loc.get("formatted"), dict) else None,
+        ]
         location_text = ", ".join(str(p) for p in parts if p and not isinstance(p, dict))
         attrs = item.get("employerAttributes") or item.get("attributes") or []
         attr_text = " ".join(a.get("label", "") if isinstance(a, dict) else str(a) for a in attrs)
@@ -273,14 +290,16 @@ def map_item(platform: str, item: dict, is_remote_query: bool) -> dict:
             exp_min=exp_min,
             exp_max=exp_max,
             salary_text=_salary_text(item.get("baseSalary")),
-            listing_url=item.get("url") or (
-                f"https://in.indeed.com/viewjob?jk={item['key']}" if item.get("key") else None
-            ),
+            listing_url=item.get("url")
+            or (f"https://in.indeed.com/viewjob?jk={item['key']}" if item.get("key") else None),
             apply_url=employer_url,
             employer_url=employer_url,
             applicants_text=None,
             agency_signal=bool(item.get("isPlacement")),
-            extra={"expired": bool(item.get("expired")), "isRepost": bool(item.get("isRepost")),
-                   "attributes": attr_text},
+            extra={
+                "expired": bool(item.get("expired")),
+                "isRepost": bool(item.get("isRepost")),
+                "attributes": attr_text,
+            },
         )
     raise ValueError(platform)

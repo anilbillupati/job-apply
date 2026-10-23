@@ -263,6 +263,38 @@ function KeyRow({ k, onTest }: { k: ApifyKey; onTest: (r: KeyTest) => void }) {
   );
 }
 
+function parseUsageDetail(detail?: string | null) {
+  if (!detail) return { usageText: null, structuredUsage: null, detailsText: "—" };
+
+  const segments = detail.split(/\s*·\s*/);
+  const usageSegments: string[] = [];
+  const otherSegments: string[] = [];
+
+  for (const seg of segments) {
+    if (/\$\d+(\.\d+)?\s*(used|left|remaining)/i.test(seg) || /used of \$/i.test(seg)) {
+      usageSegments.push(seg.trim());
+    } else {
+      otherSegments.push(seg.trim());
+    }
+  }
+
+  let structuredUsage: { used: string; limit: string; left?: string } | null = null;
+  const match = detail.match(/\$(\d+(?:\.\d+)?)\s+used\s+of\s+\$(\d+(?:\.\d+)?)(?:.*?\$(\d+(?:\.\d+)?)\s+left)?/i);
+  if (match) {
+    structuredUsage = {
+      used: match[1],
+      limit: match[2],
+      left: match[3],
+    };
+  }
+
+  return {
+    usageText: usageSegments.length > 0 ? usageSegments.join(" · ") : null,
+    structuredUsage,
+    detailsText: otherSegments.join(" · ") || (usageSegments.length ? "OK" : detail),
+  };
+}
+
 export function ApiKeys() {
   const pool = useQuery({ queryKey: ["keys"], queryFn: api.keys });
   const usage = useQuery({ queryKey: ["key-usage"], queryFn: () => api.keyUsage(200) });
@@ -391,40 +423,63 @@ export function ApiKeys() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b text-left text-xs text-muted-foreground">
-                  <th className="py-2 pr-3 font-medium">When</th>
-                  <th className="py-2 pr-3 font-medium">Key</th>
-                  <th className="py-2 pr-3 font-medium">Event</th>
-                  <th className="py-2 font-medium">Details</th>
+                  <th className="py-2.5 pr-3 font-medium">When</th>
+                  <th className="py-2.5 pr-3 font-medium">Key</th>
+                  <th className="py-2.5 pr-3 font-medium">Event</th>
+                  <th className="py-2.5 pr-3 font-medium">Usage</th>
+                  <th className="py-2.5 font-medium">Details</th>
                 </tr>
               </thead>
               <tbody>
-                {usage.data?.map((u) => (
-                  <tr key={u.id} className="border-b align-top last:border-0">
-                    <td className="whitespace-nowrap py-2 pr-3 tabular">{fmtDateTime(u.at)}</td>
-                    <td className="whitespace-nowrap py-2 pr-3">{u.key_label}</td>
-                    <td className="whitespace-nowrap py-2 pr-3">
-                      <Badge variant={u.event === "failover" ? "destructive" : u.event === "run" ? "secondary" : "outline"}>
-                        {EVENT_LABEL[u.event] ?? u.event}
-                      </Badge>
-                    </td>
-                    <td
-                      className={cn(
-                        "min-w-[12rem] py-2 text-xs",
-                        u.detail?.includes("FAILED") ? "text-destructive" : "text-muted-foreground",
-                      )}
-                    >
-                      {u.run_id && (
-                        <Link to={`/runs/${u.run_id}`} className="mr-1 text-primary hover:underline">
-                          Run #{u.run_id}
-                        </Link>
-                      )}
-                      <span className="break-words">{u.detail}</span>
-                    </td>
-                  </tr>
-                ))}
+                {usage.data?.map((u) => {
+                  const parsed = parseUsageDetail(u.detail);
+                  return (
+                    <tr key={u.id} className="border-b align-top last:border-0 hover:bg-muted/20 transition-colors">
+                      <td className="whitespace-nowrap py-2.5 pr-3 tabular text-xs text-muted-foreground">{fmtDateTime(u.at)}</td>
+                      <td className="whitespace-nowrap py-2.5 pr-3 font-medium text-foreground">{u.key_label}</td>
+                      <td className="whitespace-nowrap py-2.5 pr-3">
+                        <Badge variant={u.event === "failover" ? "destructive" : u.event === "run" ? "secondary" : "outline"}>
+                          {EVENT_LABEL[u.event] ?? u.event}
+                        </Badge>
+                      </td>
+                      <td className="whitespace-nowrap py-2.5 pr-3 text-xs">
+                        {parsed.structuredUsage ? (
+                          <div className="flex flex-col font-mono leading-tight">
+                            <span>
+                              <span className="font-semibold text-foreground">${parsed.structuredUsage.used}</span>
+                              <span className="text-muted-foreground"> / ${parsed.structuredUsage.limit}</span>
+                            </span>
+                            {parsed.structuredUsage.left !== undefined && (
+                              <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                                ${parsed.structuredUsage.left} left
+                              </span>
+                            )}
+                          </div>
+                        ) : parsed.usageText ? (
+                          <span className="font-mono text-xs font-medium text-foreground">{parsed.usageText}</span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td
+                        className={cn(
+                          "min-w-[12rem] py-2.5 text-xs",
+                          u.detail?.includes("FAILED") ? "text-destructive font-medium" : "text-muted-foreground",
+                        )}
+                      >
+                        {u.run_id && (
+                          <Link to={`/runs/${u.run_id}`} className="mr-1 text-primary hover:underline font-medium">
+                            Run #{u.run_id}
+                          </Link>
+                        )}
+                        <span className="break-words">{parsed.detailsText}</span>
+                      </td>
+                    </tr>
+                  );
+                })}
                 {!usage.data?.length && (
                   <tr>
-                    <td colSpan={4} className="py-4 text-muted-foreground">
+                    <td colSpan={5} className="py-4 text-center text-muted-foreground">
                       Nothing yet.
                     </td>
                   </tr>
